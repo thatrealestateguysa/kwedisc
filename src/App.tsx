@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
+import { Card, CardContent } from "./components/ui/card";
+import Button from "./components/ui/button";
+import Input from "./components/ui/input";
 import { Download, Mail, Loader2 } from "lucide-react";
 
 const KW_RED = "#b40101";
@@ -13,42 +13,30 @@ const EMAILJS_PUBLIC_KEY = "your_public_key";
 const CC_EMAIL = "Dawie.dutoit@kwsa.co.za";
 
 const QUESTIONS = [
-  {
-    q: "When meeting a new client, you usually...",
-    options: {
-      D: "Take charge and set clear expectations",
-      I: "Engage warmly to build connection",
-      S: "Listen carefully to understand their needs",
-      C: "Ask structured questions and note details",
-    },
-  },
-  {
-    q: "In stressful negotiations, you tend to...",
-    options: {
-      D: "Stay firm and drive toward resolution",
-      I: "Keep it light and persuasive",
-      S: "Maintain calm and empathy",
-      C: "Rely on facts and accuracy",
-    },
-  },
-  {
-    q: "When organizing your day...",
-    options: {
-      D: "Focus on key results and speed",
-      I: "Stay flexible and spontaneous",
-      S: "Keep a steady rhythm and routine",
-      C: "Plan and check every detail",
-    },
-  },
-  {
-    q: "Your lead generation strength is...",
-    options: {
-      D: "Taking initiative and closing fast",
-      I: "Networking and energizing people",
-      S: "Building long-term relationships",
-      C: "Analyzing markets and tailoring strategies",
-    },
-  },
+  { q: "When meeting a new client, you usually...", options: {
+    D: "Take charge and set clear expectations",
+    I: "Engage warmly to build connection",
+    S: "Listen carefully to understand their needs",
+    C: "Ask structured questions and note details",
+  }},
+  { q: "In stressful negotiations, you tend to...", options: {
+    D: "Stay firm and drive toward resolution",
+    I: "Keep it light and persuasive",
+    S: "Maintain calm and empathy",
+    C: "Rely on facts and accuracy",
+  }},
+  { q: "When organizing your day...", options: {
+    D: "Focus on key results and speed",
+    I: "Stay flexible and spontaneous",
+    S: "Keep a steady rhythm and routine",
+    C: "Plan and check every detail",
+  }},
+  { q: "Your lead generation strength is...", options: {
+    D: "Taking initiative and closing fast",
+    I: "Networking and energizing people",
+    S: "Building long-term relationships",
+    C: "Analyzing markets and tailoring strategies",
+  }},
 ];
 
 const TRAIT_INFO = {
@@ -111,16 +99,14 @@ export default function App() {
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         from_email: "Dawie.dutoit@kwsa.co.za",
         to_email: info.email,
-        cc_email: CC_EMAIL,
+        cc_email: "Dawie.dutoit@kwsa.co.za",
         agent_name: `${info.firstName} ${info.lastName}`,
         pdf_data_base64: base64,
       });
       alert("Your personalized DISC PDF has been emailed (CC’d to Dawie). Great work!");
     } catch (e) {
       alert("Email failed. Please verify EmailJS settings or download manually.");
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
   return (
@@ -187,7 +173,7 @@ export default function App() {
                 </div>
               </div>
               <div className="flex items-center justify-between mt-3 text-xs text-neutral-400">
-                <div>Answered: {answeredCount}/{len(QUESTIONS)}</div>
+                <div>Answered: {answeredCount}/{QUESTIONS.length}</div>
                 <div className="flex gap-2">
                   <Button variant="secondary" onClick={()=>setCurrentIdx(Math.max(0, currentIdx-1))}>Previous</Button>
                   <Button style={{backgroundColor:KW_RED}} onClick={()=>setCurrentIdx(Math.min(QUESTIONS.length-1, currentIdx+1))} disabled={!answers[currentIdx].most || !answers[currentIdx].least}>{currentIdx<QUESTIONS.length-1?'Next':'Finish'}</Button>
