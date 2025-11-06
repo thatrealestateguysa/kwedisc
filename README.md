@@ -1,16 +1,25 @@
-# Find Your Lead Gen WINWIN — Mobile-friendly Update
-- 20 Most/Least questions, single-question flow
-- Dark KW Explore theme, smaller header logo, larger question text (mobile-friendly)
-- Hidden PDF with Natural & Adaptive + side-by-side comparison chart
-- EmailJS send with CC to Dawie
+# Find Your Lead Gen WINWIN (Vite + React, EmailJS attachment)
 
-## Run
+## Quick start
+```bash
 npm i
 npm run dev
+```
 
 ## Deploy (Netlify)
-Build: npm run build
-Publish: dist
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Optional: `NODE_VERSION=18`
 
-## Configure EmailJS
-Update `EMAILJS_*` constants in `src/App.tsx` (or wire to env vars).
+## EmailJS setup (to actually send as Dawie)
+1. In EmailJS, connect a service that can send from **Dawie.dutoit@kwsa.co.za** (Gmail/SMTP).
+2. Create a template and set:
+   - **To**: `{{to_email}}`
+   - **CC**: `{{cc}}` (to copy Dawie)
+   - Subject: `{{subject}}`
+   - Body fields you want: `{{message}}`, `{{agent_name}}`, `{{phone}}`
+3. In Netlify → Site settings → Environment variables, add:
+   - `VITE_EMAILJS_SERVICE_ID`
+   - `VITE_EMAILJS_TEMPLATE_ID`
+   - `VITE_EMAILJS_PUBLIC_KEY`
+4. Redeploy. The app builds the PDF in-browser and sends it as a **File** via `attachments: [file]`.
