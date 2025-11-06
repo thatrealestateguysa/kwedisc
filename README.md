@@ -1,25 +1,24 @@
-# Find Your Lead Gen WINWIN (Vite + React, EmailJS attachment)
+# Find Your Lead Gen WINWIN — Netlify Build Fix
 
-## Quick start
-```bash
-npm i
-npm run dev
-```
+**Why your build failed:** Netlify often defaults to Node 16. Vite 5 requires Node >= 18, so the build exits with code 2.
+This repo includes `netlify.toml` and `.nvmrc` to force **Node 18**, and sets the build to `npm run build` (publish `dist`).
 
-## Deploy (Netlify)
-- Build command: `npm run build`
-- Publish directory: `dist`
-- Optional: `NODE_VERSION=18`
-
-## EmailJS setup (to actually send as Dawie)
-1. In EmailJS, connect a service that can send from **Dawie.dutoit@kwsa.co.za** (Gmail/SMTP).
-2. Create a template and set:
-   - **To**: `{{to_email}}`
-   - **CC**: `{{cc}}` (to copy Dawie)
-   - Subject: `{{subject}}`
-   - Body fields you want: `{{message}}`, `{{agent_name}}`, `{{phone}}`
-3. In Netlify → Site settings → Environment variables, add:
+### Deploy via Git repo (recommended)
+1. Push this folder to GitHub.
+2. In Netlify, **New site from Git** → select repo.
+3. Build settings are auto-read from `netlify.toml`:
+   - Build command: `npm run build`
+   - Publish: `dist`
+   - Node: 18
+4. Add environment variables (Site settings → Environment variables):
    - `VITE_EMAILJS_SERVICE_ID`
    - `VITE_EMAILJS_TEMPLATE_ID`
    - `VITE_EMAILJS_PUBLIC_KEY`
-4. Redeploy. The app builds the PDF in-browser and sends it as a **File** via `attachments: [file]`.
+
+### Drag-and-drop alternative (no build needed)
+1. Locally run: `npm i && npm run build`
+2. Upload the **contents of `dist/`** to Netlify **Deploys → Upload a folder**.
+
+### EmailJS
+- Template should use: **To** `{{to_email}}`, **CC** `{{cc}}`, and body fields like `{{subject}}`, `{{message}}`, `{{agent_name}}`, `{{phone}}`.
+- The app sends a real PDF file (`attachments: [file]`) and CCs **Dawie.dutoit@kwsa.co.za**.
