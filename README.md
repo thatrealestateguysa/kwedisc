@@ -1,27 +1,14 @@
-# Find Your Lead Gen WINWIN (Deploy-ready)
+# Find Your Lead Gen WINWIN (Clean UI)
+- Inline components (no ./components imports), Vite + React 18.
+- 20 Most/Least questions → Natural/Adaptive → PDF + EmailJS attachment (base64).
+- CC to Dawie by combining recipients in `to_email` (comma-separated).
 
-- Dark/KW theme, 20 Most/Least questions, vertical options, small detail inputs.
-- Generates branded PDF and emails via EmailJS (CC: Dawie.dutoit@kwsa.co.za).
+## Netlify variables
+- `VITE_EMAILJS_SERVICE_ID`
+- `VITE_EMAILJS_TEMPLATE_ID`
+- `VITE_EMAILJS_PUBLIC_KEY`
 
-## Netlify
-- `netlify.toml` pins **Node 18** and builds `dist`.
-- Env vars to add:
-  - `VITE_EMAILJS_SERVICE_ID`
-  - `VITE_EMAILJS_TEMPLATE_ID`
-  - `VITE_EMAILJS_PUBLIC_KEY`
+**EmailJS template**
+Set the **To** field to `{{to_email}}`. Ensure attachments are enabled (SDK will send base64 provided in `attachments`).
 
-## Local
-```bash
-npm i
-npm run dev
-```
-```bash
-npm run build
-npm run preview
-```
-
-## EmailJS template fields
-- To: `{{to_email}}`
-- CC: `{{cc}}`
-- Subject: `{{subject}}`
-- Body: you can include `{{message}}`, `{{agent_name}}`, `{{phone}}`.
+Node 18 pinned via `.nvmrc` and `netlify.toml`.

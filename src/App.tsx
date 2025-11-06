@@ -1,37 +1,32 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Download, Mail, Loader2 } from "lucide-react";
 
-// Inline UI components (removes dependency on ./components/* to fix Netlify resolver)
+// Inline UI primitives (no external ./components imports)
 const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary'|'secondary' }> = ({variant='primary', className='', ...props}) => (
   <button {...props} className={`btn ${variant==='primary'?'btn-primary':'btn-secondary'} ${className}`}/>
 );
-const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({className='', ...props}) => (
-  <div {...props} className={`card ${className}`}></div>
-);
-const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({className='', ...props}) => (
-  <div {...props} className={`p-4 ${className}`}></div>
+const Panel: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({className='', ...props}) => (
+  <div {...props} className={`panel ${className}`}></div>
 );
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>((props, ref)=> (
   <input ref={ref} {...props} className={`input ${props.className||''}`} />
 ));
 Input.displayName='Input';
 
-// THEME
+// Theme & branding
 const KW_RED = "#b40101";
 const LOGO_SRC = "/kw-explore-logo.png";
 const APP_NAME = "Find Your Lead Gen WINWIN";
 
-// EMAIL (env fallbacks + Dawie's address)
-const SENDER_EMAIL = "Dawie.dutoit@kwsa.co.za"; // reply-to / cc
-const EMAILJS_SERVICE_ID = (import.meta as any).env?.VITE_EMAILJS_SERVICE_ID || "your_service_id";
-const EMAILJS_TEMPLATE_ID = (import.meta as any).env?.VITE_EMAILJS_TEMPLATE_ID || "your_template_id";
-const EMAILJS_PUBLIC_KEY = (import.meta as any).env?.VITE_EMAILJS_PUBLIC_KEY || "your_public_key";
-const CC_EMAIL = SENDER_EMAIL;
+// EmailJS env
+const SENDER_EMAIL = "Dawie.dutoit@kwsa.co.za";
+const EMAILJS_SERVICE_ID = (import.meta as any).env?.VITE_EMAILJS_SERVICE_ID || "";
+const EMAILJS_TEMPLATE_ID = (import.meta as any).env?.VITE_EMAILJS_TEMPLATE_ID || "";
+const EMAILJS_PUBLIC_KEY = (import.meta as any).env?.VITE_EMAILJS_PUBLIC_KEY || "";
 
-// DISC types
+// DISC
 type Trait = 'D'|'I'|'S'|'C';
 
-// 20 PERSONAL (non-real estate) MOST/LEAST QUESTIONS
 const QUESTIONS: { q: string; options: Record<Trait, string> }[] = [
   { q: "When starting something new, you usually...",
     options: { D: "Jump in and figure it out on the way",
@@ -142,163 +137,11 @@ const TRAIT_INFO: Record<Trait,{ label: string; color: string }> = {
   C: { label: "Conscientiousness", color: "#0f766e" },
 };
 
-// -------- Helpers for scoring & plans --------
 const opposite: Record<Trait, Trait> = { D: 'S', I: 'C', S: 'D', C: 'I' };
 const percent = (n: number) => Math.round((n / QUESTIONS.length) * 100);
 const orderByScore = (obj: Record<Trait, number>): Trait[] => (Object.keys(obj) as Trait[]).sort((a,b)=>obj[b]-obj[a]);
 
-function buildLeadGenPlan(primary: Trait, secondary?: Trait) {
-  const base: Record<Trait, { title: string; daily: string[]; weekly: string[]; monthly: string[]; practical: string[] }> = {
-    D: {
-      title: "Lead Gen Action Plan – Driver",
-      daily: [
-        "60‑minute power hour: focused dials/texts to hot & new leads",
-        "Set 1 clear CTA per touch (book consult, valuation, tour)",
-        "Tighten time blocks: prospecting → appointments → negotiation",
-      ],
-      weekly: [
-        "FSBO/Expired outreach sprint (2 sessions)",
-        "Host/partner an outcome‑driven event (e.g., 'Sell in 60 Days' clinic)",
-        "Review pipeline: remove blockers, set deadlines",
-      ],
-      monthly: [
-        "Refine your listing presentation with one new bold proof (case study, stat)",
-        "Launch a direct‑response ad with a measurable offer",
-      ],
-      practical: [
-        "Use short scripts that lead (e.g., 'Here’s the fastest path that protects your price—shall we schedule 20 minutes?')",
-        "Track conversion by step; kill what's slow, double what's working",
-      ],
-    },
-    I: {
-      title: "Lead Gen Action Plan – Connector",
-      daily: [
-        "5 relationship touches (voice notes/DMs) – celebrate, invite, help",
-        "Shoot 1 story/reel about a client win or neighborhood vibe",
-        "Log 1 new person to your SOI with a memory hook",
-      ],
-      weekly: [
-        "Run a fun micro‑event (coffee pop‑up, walk‑and‑talk preview)",
-        "Open house as relationship engine (set 3 follow‑ups on the spot)",
-        "Send a 'good news' email to your list (social proof, invite)",
-      ],
-      monthly: [
-        "Host a community meetup or client appreciation mini‑event",
-        "Batch content day with 4–6 short videos",
-      ],
-      practical: [
-        "Use curiosity openers (e.g., 'Just out of curiosity…') and future‑pacing",
-        "Turn every 'maybe' into a calendar invite or next micro‑step",
-      ],
-    },
-    S: {
-      title: "Lead Gen Action Plan – Stabilizer",
-      daily: [
-        "3 care calls + 2 handwritten notes",
-        "Nurture 1 past client with a simple check‑in or resource",
-        "Document promises in CRM and schedule gentle follow‑ups",
-      ],
-      weekly: [
-        "Neighborhood nurture: door notes or porch drop‑bys",
-        "Host a calm Q&A ('Understanding the process')",
-        "Referral touch: 'Who can I take care of for you this month?'",
-      ],
-      monthly: [
-        "Client care event (shredding day, movie night, park picnic)",
-        "Update a step‑by‑step buyer/seller guide, share with warm list",
-      ],
-      practical: [
-        "Lead with empathy; recap next steps after every convo",
-        "Use gentle trial closes ('Would it help if…') to reduce friction",
-      ],
-    },
-    C: {
-      title: "Lead Gen Action Plan – Analyst",
-      daily: [
-        "Update market watch list; send 1 insight to 3 prospects",
-        "Tidy CRM tags/segments; trigger one relevant drip",
-        "Draft 1 data‑backed post (comps, absorption, payment scenarios)",
-      ],
-      weekly: [
-        "Record a 3‑minute 'market logic' video with captions",
-        "Host a micro‑webinar: 'What the data says about timing'",
-        "Price‑preview CMAs for 3 homeowners (email a one‑page visual)",
-      ],
-      monthly: [
-        "Ship a one‑pager 'Market at a Glance' to your farm list",
-        "A/B test a landing page or lead magnet; iterate on conversion",
-      ],
-      practical: [
-        "Use calibrated questions ('What would make the numbers work for you?')",
-        "Visualize: charts, one‑pagers, decision matrices",
-      ],
-    },
-  };
-
-  const mix = (a: string[], b?: string[]) => b ? Array.from(new Set([...a, ...b])).slice(0, 6) : a;
-  const pri = base[primary];
-  const sec = secondary ? base[secondary] : undefined;
-  return {
-    title: sec ? `${pri.title} + ${sec.title.replace('Lead Gen Action Plan – ', '')}` : pri.title,
-    daily: mix(pri.daily, sec?.daily),
-    weekly: mix(pri.weekly, sec?.weekly),
-    monthly: mix(pri.monthly, sec?.monthly),
-    practical: mix(pri.practical, sec?.practical),
-  };
-}
-
-function buildNegotiationPlaybook(primary: Trait, secondary?: Trait) {
-  const base: Record<Trait, { approach: string[]; tactics: string[]; watchouts: string[]; phrases: string[] }> = {
-    D: {
-      approach: ["Own the frame, define outcomes, set clear timelines"],
-      tactics: ["Set strong anchors", "Use deadlines and BATNA clarity", "Trade, don’t concede"],
-      watchouts: ["Over‑pressuring slower styles", "Talking past emotions"],
-      phrases: [
-        "Here’s the fastest path that protects your outcome…",
-        "What flexibility do we have on X if we deliver Y today?",
-      ],
-    },
-    I: {
-      approach: ["Build high trust and momentum, package win‑wins"],
-      tactics: ["Trial closes", "Summarize gains often", "Name shared goals"],
-      watchouts: ["Over‑promising", "Missing details in the excitement"],
-      phrases: [
-        "What would make this feel like a win for everyone?",
-        "If we solved X for them, could you be open to Y?",
-      ],
-    },
-    S: {
-      approach: ["Collaborative pace, reduce stress, protect relationships"],
-      tactics: ["Label emotions", "Offer safe next steps", "Create small agreements"],
-      watchouts: ["Avoiding necessary conflict", "Too much delay"],
-      phrases: [
-        "It sounds like timing is stressful—what would feel manageable?",
-        "Would it help if we handled X so you could comfortably do Y?",
-      ],
-    },
-    C: {
-      approach: ["Evidence‑based, logical progress, document everything"],
-      tactics: ["Data counters", "Bracketing", "Calibrated questions"],
-      watchouts: ["Over‑analyzing", "Under‑acknowledging feelings"],
-      phrases: [
-        "Help me understand how you calculated that number.",
-        "According to the comps and absorption, a move to X achieves Y—how does that land?",
-      ],
-    },
-  };
-
-  const merge = (a: string[], b?: string[]) => b ? Array.from(new Set([...a, ...b])).slice(0, 6) : a;
-  const p = base[primary];
-  const s = secondary ? base[secondary] : undefined;
-  return {
-    approach: merge(p.approach, s?.approach),
-    tactics: merge(p.tactics, s?.tactics),
-    watchouts: merge(p.watchouts, s?.watchouts),
-    phrases: merge(p.phrases, s?.phrases),
-  };
-}
-
-export default function App() {
+export default function App(){
   const [info, setInfo] = useState({ firstName: "", lastName: "", phone: "", email: "" });
   const [answers, setAnswers] = useState<{ most: Trait|null; least: Trait|null }[]>(Array(QUESTIONS.length).fill(null).map(()=>({most:null, least:null})));
   const [sending, setSending] = useState(false);
@@ -320,13 +163,10 @@ export default function App() {
   const primary = primaryOrder[0];
   const secondary = primaryOrder[1];
 
-  const plan = buildLeadGenPlan(primary, secondary);
-  const neg = buildNegotiationPlaybook(primary, secondary);
-
   const progress = (answeredCount/QUESTIONS.length)*100;
 
-  // ---- PDF helpers ----
-  const makePDFFile = async () => {
+  // PDF helpers
+  const makePDFBlob = async () => {
     const html2canvas = (await import("html2canvas")).default;
     const { jsPDF } = await import("jspdf");
     const target = reportRef.current!;
@@ -334,250 +174,293 @@ export default function App() {
     const pdf = new jsPDF();
     const imgData = canvas.toDataURL("image/png");
     pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
-    const fileName = `${APP_NAME}_${info.firstName}_${info.lastName}.pdf`;
-    const blob = pdf.output("blob");
-    const file = new File([blob], fileName, { type: "application/pdf" });
-    return { file, fileName };
+    return pdf.output("blob");
   };
-
+  const blobToBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
   const downloadPDF = async () => {
-    const html2canvas = (await import("html2canvas")).default;
     const { jsPDF } = await import("jspdf");
-    const target = reportRef.current!;
-    const canvas = await html2canvas(target, { scale: 2 });
+    const html2canvas = (await import("html2canvas")).default;
+    const canvas = await html2canvas(reportRef.current!, { scale: 2 });
     const pdf = new jsPDF();
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
     pdf.save(`${APP_NAME}_${info.firstName}_${info.lastName}.pdf`);
   };
 
   const emailPDF = async () => {
     if (!info.firstName || !info.lastName || !info.email) { setErrors("Please complete your details before emailing."); return; }
     if (answers.some(a=>!a.most || !a.least)) { setErrors("Please answer Most & Least for all 20 questions."); return; }
+    if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) { setErrors("Email service is not configured on the server (environment variables missing). You can still download the PDF."); return; }
+
     setSending(true);
     try {
       const emailjs = await import("emailjs-com");
       await emailjs.init(EMAILJS_PUBLIC_KEY);
-      const { file, fileName } = await makePDFFile();
+
+      const blob = await makePDFBlob();
+      const base64 = await blobToBase64(blob);
+      const fileName = `${APP_NAME}_${info.firstName}_${info.lastName}.pdf`;
+
+      // Send to both: recipient & Dawie via comma-separated recipients if template uses {{to_email}}
+      const toCombined = `${info.email}, ${SENDER_EMAIL}`;
 
       const params: Record<string, any> = {
-        // Addressing (configure your EmailJS template to reference these)
-        to_email: info.email,
+        to_email: toCombined,
         to_name: `${info.firstName} ${info.lastName}`,
         from_name: "KW Explore | Find Your Lead Gen WINWIN",
-        from_email: SENDER_EMAIL,
         reply_to: SENDER_EMAIL,
-        cc: CC_EMAIL, // add {{cc}} to your template CC field
-
-        // Body variables
-        agent_name: `${info.firstName} ${info.lastName}`,
-        phone: info.phone,
         subject: "Your Personalized DISC Report",
         message: "Attached is your personalized DISC report with Lead Gen plan & Negotiation playbook.",
-
-        // Attachment (actual PDF)
-        attachments: [file],
+        // Attachment as base64 (EmailJS browser-friendly)
+        attachments: [ { name: fileName, data: base64 } ],
+        // Extra fields (optional in your template)
+        agent_name: `${info.firstName} ${info.lastName}`,
+        phone: info.phone,
       };
 
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
-      alert("✅ Email sent with your PDF attached (CC’d to Dawie). If it didn’t arrive, confirm EmailJS keys/template.");
+      alert("✅ Email sent with your PDF attached to you and Dawie.");
     } catch (e) {
       console.error(e);
-      alert("Email failed. Please verify EmailJS service/template/public key and template variables (README). You can still Download PDF.");
+      alert("Email failed. Check EmailJS keys/template and that your template uses {{to_email}} and supports attachments.");
     } finally { setSending(false); }
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0d] text-neutral-100">
-      {/* HEADER */}
-      <header className="border-b border-neutral-800 bg-neutral-900/90 sticky top-0 z-10 p-4 flex items-center gap-3">
-        <img src={LOGO_SRC} alt="KW Explore" style={{height:'20px'}} />
-        <h1 className="font-bold text-xl" style={{ color: KW_RED }}>{APP_NAME}</h1>
-      </header>
+    <>
+      {/* Header */}
+      <div className="header">
+        <div className="header-inner">
+          <img className="logo" src={LOGO_SRC} alt="KW Explore" />
+          <div className="app-title">{APP_NAME}</div>
+        </div>
+        <div className="red-rule"></div>
+      </div>
 
-      <main className="max-w-3xl mx-auto p-4 space-y-4">
-        {/* DETAILS */}
-        <Card className="bg-neutral-900 border-neutral-800">
-          <CardContent className="space-y-3">
-            <h2 className="text-lg font-semibold" style={{ color: KW_RED }}>Your Details</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Input className="text-sm md:text-base py-2" placeholder="Name" value={info.firstName} onChange={(e)=>setInfo({...info, firstName:e.target.value})}/>
-              <Input className="text-sm md:text-base py-2" placeholder="Surname" value={info.lastName} onChange={(e)=>setInfo({...info, lastName:e.target.value})}/>
-              <Input className="text-sm md:text-base py-2" placeholder="Phone" value={info.phone} onChange={(e)=>setInfo({...info, phone:e.target.value})}/>
-              <Input className="text-sm md:text-base py-2" placeholder="Email" type="email" value={info.email} onChange={(e)=>setInfo({...info, email:e.target.value})}/>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="container">
+        {/* Details */}
+        <Panel className="p-4" >
+          <div className="section-title">Your Details</div>
+          <div className="details-grid">
+            <Input placeholder="Name" value={info.firstName} onChange={(e)=>setInfo({...info, firstName:e.target.value})} />
+            <Input placeholder="Surname" value={info.lastName} onChange={(e)=>setInfo({...info, lastName:e.target.value})} />
+            <Input placeholder="Phone" value={info.phone} onChange={(e)=>setInfo({...info, phone:e.target.value})} />
+            <Input placeholder="Email" type="email" value={info.email} onChange={(e)=>setInfo({...info, email:e.target.value})} />
+          </div>
+        </Panel>
 
-        {/* QUESTIONNAIRE */}
-        <Card className="bg-neutral-900 border-neutral-800">
-          <CardContent className="space-y-4">
-            <h2 className="text-lg font-semibold" style={{ color: KW_RED }}>Get To Know Yourself</h2>
+        {/* Questionnaire */}
+        <Panel className="p-4" style={{marginTop:'14px'}}>
+          <div className="section-title">Get To Know Yourself</div>
+          <div className="progress" style={{marginBottom:'6px'}}><span style={{width:`${progress}%`}}/></div>
+          <div className="meta">Answered: {answeredCount}/{QUESTIONS.length} • There are no right/wrong answers.</div>
 
-            {/* progress bar */}
-            <div className="w-full h-2 rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full" style={{ width: `${progress}%`, background: KW_RED }}></div>
-            </div>
-            <div className="text-xs text-neutral-400">Answered: {answeredCount}/{QUESTIONS.length} • There are no right/wrong answers.</div>
+          <div style={{fontSize:'22px', fontWeight:800, marginTop:'14px', marginBottom:'10px'}}>
+            {currentIdx + 1}. {QUESTIONS[currentIdx].q}
+          </div>
 
-            <div className="rounded-xl border border-neutral-800 p-3">
-              <div style={{fontSize:'22px', lineHeight:'1.35', fontWeight:700, marginBottom:'12px'}}>{currentIdx + 1}. {QUESTIONS[currentIdx].q}</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-neutral-800 p-3">
-                  <div className="text-sm text-neutral-100 mb-3 font-medium">Most likely</div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {shuffledOptions[currentIdx].map(([code, text]) => {
-                      const selected = answers[currentIdx].most === code;
-                      return (
-                        <button key={`most-${code}`}
-                          onClick={() => {
-                            const next = [...answers];
-                            if (next[currentIdx].least === code) return;
-                            next[currentIdx] = { ...next[currentIdx], most: code as Trait };
-                            setAnswers(next);
-                          }}
-                          style={{ textAlign:'left', color:'#fff', border: '1px solid ' + (selected ? '#b40101' : '#3f3f46'), padding:'14px 16px', borderRadius:'12px', fontSize:'18px', background: selected ? '#1c1c20' : '#0f0f12' }}>{text}</button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-neutral-800 p-3">
-                  <div className="text-sm text-neutral-100 mb-3 font-medium">Least likely</div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {shuffledOptions[currentIdx].map(([code, text]) => {
-                      const selected = answers[currentIdx].least === code;
-                      return (
-                        <button key={`least-${code}`}
-                          onClick={() => {
-                            const next = [...answers];
-                            if (next[currentIdx].most === code) return;
-                            next[currentIdx] = { ...next[currentIdx], least: code as Trait };
-                            setAnswers(next);
-                          }}
-                          style={{ textAlign:'left', color:'#fff', border: '1px solid ' + (selected ? '#b40101' : '#3f3f46'), padding:'14px 16px', borderRadius:'12px', fontSize:'18px', background: selected ? '#1c1c20' : '#0f0f12' }}>{text}</button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-3 text-xs text-neutral-400">
-                <div>Question {currentIdx+1} of {QUESTIONS.length}</div>
-                <div className="flex gap-2">
-                  <Button variant="secondary" className="px-4 py-3 text-base md:text-lg" onClick={()=>setCurrentIdx(Math.max(0, currentIdx-1))}>Previous</Button>
-                  <Button style={{backgroundColor:KW_RED}} className="px-4 py-3 text-base md:text-lg" onClick={()=>setCurrentIdx(Math.min(QUESTIONS.length-1, currentIdx+1))} disabled={!answers[currentIdx].most || !answers[currentIdx].least}>{currentIdx<QUESTIONS.length-1?'Next':'Finish'}</Button>
-                </div>
+          <div className="grid-2">
+            {/* Most */}
+            <div className="panel p-3" style={{background:'#121316'}}>
+              <div className="meta" style={{marginBottom:'8px', color:'#e5e7eb', fontWeight:700}}>Most likely</div>
+              <div style={{display:'grid', gap:'10px'}}>
+                { (Object.entries(QUESTIONS[currentIdx].options) as [Trait,string][]) /* keep fixed order per Q; UI reads clean */
+                  .map(([code, text]) => {
+                    const selected = answers[currentIdx].most === code;
+                    return (
+                      <button key={`most-${code}`}
+                        onClick={()=>{
+                          const next=[...answers];
+                          if(next[currentIdx].least===code)return;
+                          next[currentIdx] = {...next[currentIdx], most: code};
+                          setAnswers(next);
+                        }}
+                        className={`tile ${selected?'selected':''}`}
+                      >{text}</button>
+                    );
+                })}
               </div>
             </div>
 
-            {errors && <div className="text-red-500 text-sm">{errors}</div>}
-            <div className="flex gap-2">
-              <Button onClick={downloadPDF} variant="secondary"><Download className="h-4 w-4"/>Download PDF</Button>
-              <Button onClick={emailPDF} style={{backgroundColor:KW_RED}} className="gap-2">{sending?<Loader2 className="h-4 w-4 animate-spin"/>:<Mail className="h-4 w-4"/>}Email Report</Button>
+            {/* Least */}
+            <div className="panel p-3" style={{background:'#121316'}}>
+              <div className="meta" style={{marginBottom:'8px', color:'#e5e7eb', fontWeight:700}}>Least likely</div>
+              <div style={{display:'grid', gap:'10px'}}>
+                { (Object.entries(QUESTIONS[currentIdx].options) as [Trait,string][]) 
+                  .map(([code, text]) => {
+                    const selected = answers[currentIdx].least === code;
+                    return (
+                      <button key={`least-${code}`}
+                        onClick={()=>{
+                          const next=[...answers];
+                          if(next[currentIdx].most===code)return;
+                          next[currentIdx] = {...next[currentIdx], least: code};
+                          setAnswers(next);
+                        }}
+                        className={`tile ${selected?'selected':''}`}
+                      >{text}</button>
+                    );
+                })}
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* HIDDEN REPORT (rendered to PDF) */}
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'12px'}}>
+            <div className="meta">Question {currentIdx+1} of {QUESTIONS.length}</div>
+            <div className="footer-actions">
+              <Button variant="secondary" onClick={()=>setCurrentIdx(Math.max(0, currentIdx-1))}>Previous</Button>
+              <Button onClick={()=>setCurrentIdx(Math.min(QUESTIONS.length-1, currentIdx+1))} disabled={!answers[currentIdx].most || !answers[currentIdx].least}>{
+                currentIdx<QUESTIONS.length-1?'Next':'Finish'
+              }</Button>
+            </div>
+          </div>
+
+          {errors && <div style={{color:'#ef4444', marginTop:'8px'}} className="small">{errors}</div>}
+
+          <div className="footer-actions" style={{marginTop:'10px'}}>
+            <Button variant="secondary" onClick={downloadPDF}><Download className="h-4 w-4"/>Download PDF</Button>
+            <Button onClick={emailPDF}>{sending?<Loader2 className="h-4 w-4 animate-spin"/>:<Mail className="h-4 w-4"/>}Email Report</Button>
+          </div>
+        </Panel>
+
+        {/* Hidden Report for PDF */}
         <div ref={reportRef} style={{position:'absolute', left:'-9999px', top:'-9999px', width:'800px'}}>
-          <div className="bg-white text-black p-6 rounded-xl" style={{fontFamily:'ui-sans-serif, system-ui'}}>
-            <div className="flex items-center justify-between">
-              <img src={LOGO_SRC} alt="KW" style={{height:'16px'}}/>
-              <div style={{color:KW_RED, fontWeight:700}}>KW Explore</div>
+          <div style={{background:'#fff', color:'#111', padding:'24px', borderRadius:'14px', fontFamily:'ui-sans-serif, system-ui'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <img src={LOGO_SRC} alt="KW" style={{height:'18px'}}/>
+              <div style={{color:KW_RED, fontWeight:800}}>KW Explore</div>
             </div>
-            <h2 className="font-bold text-xl mt-2" style={{color:KW_RED}}>Personalized DISC Report</h2>
-            <p><b>Name:</b> {info.firstName} {info.lastName} &nbsp; <b>Email:</b> {info.email}</p>
+            <h2 style={{color:KW_RED, fontSize:'22px', fontWeight:800, margin:'10px 0'}}>Personalized DISC Report</h2>
+            <div className="small"><b>Name:</b> {info.firstName} {info.lastName} &nbsp; <b>Email:</b> {info.email}</div>
 
-            {/* Summary */}
-            <h3 className="font-semibold mt-3">Executive Summary</h3>
-            <p>Your natural emphasis appears strongest in <b>{TRAIT_INFO[primary].label}</b>{secondary?` with a supporting ${TRAIT_INFO[secondary].label} blend`:''}. Your adaptive pattern suggests you lean on complementary behaviors when under pressure.</p>
+            {/* Compute scores again inside */}
+            <Report scores={{
+              natural: { D: scores.natural.D, I: scores.natural.I, S: scores.natural.S, C: scores.natural.C },
+              adaptive: { D: scores.adaptive.D, I: scores.adaptive.I, S: scores.adaptive.S, C: scores.adaptive.C }
+            }} primary={primary} secondary={secondary} />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
-            <div className="grid" style={{gridTemplateColumns:'1fr 1fr', gap:'12px'}}>
-              <div>
-                <h4 className="font-semibold">Natural Style</h4>
-                {(Object.keys(scores.natural) as Trait[]).map(k=>(<p key={k}>{TRAIT_INFO[k].label}: {scores.natural[k]} ({percent(scores.natural[k])}%)</p>))}
-              </div>
-              <div>
-                <h4 className="font-semibold">Adaptive Style</h4>
-                {(Object.keys(scores.adaptive) as Trait[]).map(k=>(<p key={k}>{TRAIT_INFO[k].label}: {scores.adaptive[k]} ({percent(scores.adaptive[k])}%)</p>))}
-              </div>
-            </div>
+// Report section extracted for PDF rendering
+function Report({scores, primary, secondary}:{scores: {natural: Record<Trait,number>, adaptive: Record<Trait,number>}, primary: Trait, secondary: Trait}){
+  const pct = (n:number)=> Math.round((n/20)*100);
+  return (
+    <div>
+      <h3 style={{fontWeight:700, marginTop:'6px'}}>Executive Summary</h3>
+      <p>Your natural emphasis appears strongest in <b>{TRAIT_INFO[primary].label}</b>{secondary?` with a supporting ${TRAIT_INFO[secondary].label} blend`:''}. Your adaptive pattern suggests you lean on complementary behaviors under pressure.</p>
 
-            {/* Side-by-side chart */}
-            <h3 className="font-semibold mt-3">Natural vs Adaptive (Side-by-Side)</h3>
-            <svg width="760" height="240">
-              <g>
-                <text x="20" y="20" fontSize="12" fill="#111">0–100%</text>
-              </g>
-              {(['D','I','S','C'] as Trait[]).map((k, i) => {
-                const nat = percent(scores.natural[k]);
-                const ada = percent(scores.adaptive[k]);
-                const baseX = 60 + i * 170;
-                const scale = 1.6; // 0–100 -> 160px
-                const barBottom = 200;
-                return (
-                  <g key={k} transform={`translate(${baseX},0)`}>
-                    <text x={0} y={barBottom + 20} fontSize="12" fill="#111">{TRAIT_INFO[k].label}</text>
-                    <rect x={0} y={barBottom - ada*scale} width={50} height={ada*scale} fill="#111" />
-                    <text x={0} y={barBottom - ada*scale - 5} fontSize="10" fill="#111">{ada}%</text>
-                    <rect x={60} y={barBottom - nat*scale} width={50} height={nat*scale} fill="#bfbfbf" stroke="#111" />
-                    <text x={60} y={barBottom - nat*scale - 5} fontSize="10" fill="#111">{nat}%</text>
-                  </g>
-                );
-              })}
-              <line x1="40" y1="200" x2="740" y2="200" stroke="#111" strokeWidth="1"/>
-            </svg>
+      {/* Side-by-side bars */}
+      <h3 style={{fontWeight:700, marginTop:'6px'}}>Natural vs Adaptive (Side-by-Side)</h3>
+      <svg width="760" height="240">
+        {(['D','I','S','C'] as Trait[]).map((k, i) => {
+          const nat = pct(scores.natural[k]);
+          const ada = pct(scores.adaptive[k]);
+          const baseX = 60 + i * 170;
+          const scale = 1.6;
+          const barBottom = 200;
+          return (
+            <g key={k} transform={`translate(${baseX},0)`}>
+              <text x={0} y={barBottom + 20} fontSize="12" fill="#111">{TRAIT_INFO[k].label}</text>
+              <rect x={0} y={barBottom - ada*scale} width={50} height={ada*scale} fill="#111" />
+              <text x={0} y={barBottom - ada*scale - 5} fontSize="10" fill="#111">{ada}%</text>
+              <rect x={60} y={barBottom - nat*scale} width={50} height={nat*scale} fill="#bfbfbf" stroke="#111" />
+              <text x={60} y={barBottom - nat*scale - 5} fontSize="10" fill="#111">{nat}%</text>
+            </g>
+          );
+        })}
+        <line x1="40" y1="200" x2="740" y2="200" stroke="#111" strokeWidth="1"/>
+      </svg>
 
-            {/* Lead Gen Plan */}
-            <h3 className="font-semibold mt-3" style={{color:KW_RED}}>Lead Generation Action Plan</h3>
+      {/* Lead Gen and Negotiation sections */}
+      {(() => {
+        const buildLeadGenPlan = (primary: Trait, secondary?: Trait) => {
+          const base: Record<Trait, { title: string; daily: string[]; weekly: string[]; monthly: string[]; practical: string[] }> = {
+            D: { title:'Lead Gen Action Plan – Driver',
+                 daily:['60‑minute power hour: focused dials/texts to hot & new leads','Set 1 clear CTA per touch','Tighten time blocks'],
+                 weekly:['FSBO/Expired sprint (2)','Outcome‑driven event','Pipeline review'],
+                 monthly:['Upgrade listing proof','Launch a direct‑response ad'],
+                 practical:['Lead with short, decisive scripts','Track conversion by step'] },
+            I: { title:'Lead Gen Action Plan – Connector',
+                 daily:['5 relationship touches','1 story/reel','Log 1 new SOI contact'],
+                 weekly:['Fun micro‑event','Open house engine','Good‑news email'],
+                 monthly:['Community/client event','Batch 4–6 short videos'],
+                 practical:['Curiosity openers & future‑pacing','Every maybe → next step'] },
+            S: { title:'Lead Gen Action Plan – Stabilizer',
+                 daily:['3 care calls + 2 notes','Past‑client nurture','Document promises in CRM'],
+                 weekly:['Neighborhood nurture','Calm Q&A','Referral touch'],
+                 monthly:['Client care event','Update buyer/seller guide'],
+                 practical:['Lead with empathy','Gentle trial closes'] },
+            C: { title:'Lead Gen Action Plan – Analyst',
+                 daily:['Market watch → 3 insights','Tidy CRM segments','Data‑backed post'],
+                 weekly:['3‑min “market logic” video','Micro‑webinar','Price‑preview CMAs'],
+                 monthly:['One‑pager “Market at a Glance”','A/B test one funnel'],
+                 practical:['Calibrated questions','Visualize decisions'] },
+          };
+          const mix = (a:string[], b?:string[]) => b ? Array.from(new Set([...a,...b])).slice(0,6) : a;
+          const pri = base[primary]; const sec = secondary ? base[secondary] : undefined;
+          return { title: sec ? `${pri.title} + ${sec.title.replace('Lead Gen Action Plan – ', '')}` : pri.title,
+                   daily: mix(pri.daily, sec?.daily), weekly: mix(pri.weekly, sec?.weekly),
+                   monthly: mix(pri.monthly, sec?.monthly), practical: mix(pri.practical, sec?.practical) };
+        };
+        const buildNegotiationPlaybook = (primary: Trait, secondary?: Trait) => {
+          const base: Record<Trait,{approach:string[]; tactics:string[]; watchouts:string[]; phrases:string[]}> = {
+            D:{approach:['Own the frame, define outcomes, set timelines'], tactics:['Anchors','Deadlines/BATNA','Trade, don’t concede'], watchouts:['Over‑pressure','Miss emotions'], phrases:['Fastest path that protects your outcome…','If we deliver Y, can we get X today?']},
+            I:{approach:['Trust + momentum; package win‑wins'], tactics:['Trial closes','Summarize gains','Name shared goals'], watchouts:['Over‑promise','Miss details'], phrases:['What makes this a win for everyone?','If we solved X for them, could you do Y?']},
+            S:{approach:['Collaborative pace; reduce stress'], tactics:['Label emotions','Safe next steps','Small agreements'], watchouts:['Avoid conflict','Delay'], phrases:['What would feel manageable?','Would it help if we handled X so you could do Y?']},
+            C:{approach:['Evidence‑based; document'], tactics:['Data counters','Bracketing','Calibrated questions'], watchouts:['Over‑analyze','Under‑acknowledge feelings'], phrases:['How did you calculate that?','Comps suggest X→Y—how does that land?']},
+          };
+          const merge=(a:string[],b?:string[])=>b?Array.from(new Set([...a,...b])).slice(0,6):a;
+          const p=base[primary], s=secondary?base[secondary]:undefined;
+          return {approach:merge(p.approach,s?.approach),tactics:merge(p.tactics,s?.tactics),watchouts:merge(p.watchouts,s?.watchouts),phrases:merge(p.phrases,s?.phrases)};
+        };
+
+        const primaryOrder = (['D','I','S','C'] as Trait[]).sort((a,b)=>scores.natural[b]-scores.natural[a]);
+        const p = primaryOrder[0], s = primaryOrder[1];
+        const plan = buildLeadGenPlan(p, s);
+        const neg = buildNegotiationPlaybook(p, s);
+
+        return (
+          <div>
+            <h3 style={{color: '#b40101', fontWeight:700, marginTop:'10px'}}>Lead Generation Action Plan</h3>
             <p><b>Focus:</b> {plan.title}</p>
-            <div className="grid" style={{gridTemplateColumns:'1fr 1fr', gap:'8px'}}>
-              <div>
-                <h4 className="font-semibold">Daily</h4>
-                <ul style={{paddingLeft:'16px'}}>{plan.daily.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-              </div>
-              <div>
-                <h4 className="font-semibold">Weekly</h4>
-                <ul style={{paddingLeft:'16px'}}>{plan.weekly.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-              </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+              <div><h4 style={{fontWeight:700}}>Daily</h4><ul style={{paddingLeft:'16px'}}>{plan.daily.map((x,i)=>(<li key={i}>• {x}</li>))}</ul></div>
+              <div><h4 style={{fontWeight:700}}>Weekly</h4><ul style={{paddingLeft:'16px'}}>{plan.weekly.map((x,i)=>(<li key={i}>• {x}</li>))}</ul></div>
             </div>
-            <div className="grid" style={{gridTemplateColumns:'1fr 1fr', gap:'8px', marginTop:'6px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+              <div><h4 style={{fontWeight:700}}>Monthly</h4><ul style={{paddingLeft:'16px'}}>{plan.monthly.map((x,i)=>(<li key={i}>• {x}</li>))}</ul></div>
+              <div><h4 style={{fontWeight:700}}>Practical Ways</h4><ul style={{paddingLeft:'16px'}}>{plan.practical.map((x,i)=>(<li key={i}>• {x}</li>))}</ul></div>
+            </div>
+
+            <h3 style={{color: '#b40101', fontWeight:700, marginTop:'10px'}}>Negotiation Playbook</h3>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
               <div>
-                <h4 className="font-semibold">Monthly</h4>
-                <ul style={{paddingLeft:'16px'}}>{plan.monthly.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
+                <h4 style={{fontWeight:700}}>Approach</h4><ul style={{paddingLeft:'16px'}}>{neg.approach.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
+                <h4 style={{fontWeight:700, marginTop:'6px'}}>Tactics</h4><ul style={{paddingLeft:'16px'}}>{neg.tactics.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
               </div>
               <div>
-                <h4 className="font-semibold">Practical Ways</h4>
-                <ul style={{paddingLeft:'16px'}}>{plan.practical.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
+                <h4 style={{fontWeight:700}}>Watch‑outs</h4><ul style={{paddingLeft:'16px'}}>{neg.watchouts.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
+                <h4 style={{fontWeight:700, marginTop:'6px'}}>Useful Phrases</h4><ul style={{paddingLeft:'16px'}}>{neg.phrases.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
               </div>
             </div>
 
-            {/* Negotiation Playbook */}
-            <h3 className="font-semibold mt-3" style={{color:KW_RED}}>Negotiation Playbook</h3>
-            <div className="grid" style={{gridTemplateColumns:'1fr 1fr', gap:'8px'}}>
-              <div>
-                <h4 className="font-semibold">Approach</h4>
-                <ul style={{paddingLeft:'16px'}}>{neg.approach.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-                <h4 className="font-semibold mt-2">Tactics</h4>
-                <ul style={{paddingLeft:'16px'}}>{neg.tactics.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-              </div>
-              <div>
-                <h4 className="font-semibold">Watch‑outs</h4>
-                <ul style={{paddingLeft:'16px'}}>{neg.watchouts.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-                <h4 className="font-semibold mt-2">Useful Phrases</h4>
-                <ul style={{paddingLeft:'16px'}}>{neg.phrases.map((x,i)=>(<li key={i}>• {x}</li>))}</ul>
-              </div>
-            </div>
-
-            {/* 30‑60‑90 */}
-            <h3 className="font-semibold mt-3" style={{color:KW_RED}}>30‑60‑90 Implementation</h3>
+            <h3 style={{color: '#b40101', fontWeight:700, marginTop:'10px'}}>30‑60‑90 Implementation</h3>
             <ul style={{paddingLeft:'16px'}}>
               <li>• <b>Next 30 days:</b> Execute the daily/weekly cadence above. Track activity in your CRM.</li>
               <li>• <b>Days 31–60:</b> Double down on what converts; convert 1 tactic into a repeatable system.</li>
               <li>• <b>Days 61–90:</b> Add one new channel aligned to your style; ship a proof‑of‑value case study.</li>
             </ul>
           </div>
-        </div>
-      </main>
+        );
+      })()}
     </div>
   );
 }
