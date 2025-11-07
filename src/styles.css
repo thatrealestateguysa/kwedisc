@@ -3,35 +3,23 @@
 :root{--kw-red:#b40101;--ink:#0b0b0d;--panel:#121214;--border:#2a2a2e}
 html,body,#root{height:100%}
 body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--ink);color:#e5e7eb}
-
-/* Buttons/Cards/Inputs */
 .btn{border:1px solid var(--border);background:#18181b;color:#e5e7eb;padding:.75rem 1rem;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;font-weight:600}
 .btn:hover{opacity:.98;transform:translateY(-1px)}
 .btn-primary{background:var(--kw-red);border-color:var(--kw-red);color:#fff}
 .btn-secondary{background:#111827;color:#e5e7eb}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .input{background:#0f0f12;border:1px solid var(--border);color:#e5e7eb;border-radius:12px;padding:12px 14px;width:100%;font-size:14px}
-
-/* Tiny utility subset used by the app */
-.min-h-screen{min-height:100vh}
-.sticky{position:sticky}.top-0{top:0}.z-10{z-index:10}
-.p-3{padding:.75rem}.p-4{padding:1rem}
+.min-h-screen{min-height:100vh}.sticky{position:sticky}.top-0{top:0}.z-10{z-index:10}
+.p-3{padding:.75rem}.p-4{padding:1rem}.p-6{padding:1.25rem}
 .mt-3{margin-top:.75rem}.mb-3{margin-bottom:.75rem}
 .mx-auto{margin-left:auto;margin-right:auto}
 .space-y-3>*+*{margin-top:.75rem}.space-y-4>*+*{margin-top:1rem}
 .flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
 .gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}
 .text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-neutral-400{color:#9ca3af}.text-neutral-100{color:#e5e7eb}
-.font-medium{font-weight:600}.font-bold{font-weight:700}.text-xl{font-size:1.25rem}
+.font-medium{font-weight:600}.font-bold{font-weight:700}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}
 .border{border:1px solid var(--border)}.border-neutral-800{border-color:#27272a}
 .rounded-lg{border-radius:.75rem}.rounded-xl{border-radius:1rem}
 .grid{display:grid}.grid-cols-1{grid-template-columns:1fr}
-@media (min-width: 768px){
-  .md\:grid-cols-2{grid-template-columns:1fr 1fr}
-  .md\:text-lg{font-size:1.125rem}
-}
-.max-w-3xl{max-width:768px}
-.w-full{width:100%}.h-2{height:.5rem}.rounded-full{border-radius:9999px}.overflow-hidden{overflow:hidden}
-
-/* PDF skeleton */
-.pdf-doc{width:794px}
+@media (min-width: 768px){.md\:grid-cols-2{grid-template-columns:1fr 1fr}.md\:text-lg{font-size:1.125rem}}
+.max-w-3xl{max-width:768px}.w-full{width:100%}.h-2{height:.5rem}.rounded-full{border-radius:9999px}.overflow-hidden{overflow:hidden}
