@@ -1,11 +1,17 @@
-# Find Your Lead Gen WINWIN — Clean Multi‑Page Report
-- 20 Most/Least questions → Natural & Adaptive → **6–10 page PDF** (KW red headings, black body).
-- Side‑by‑side bar chart; Lead Gen plan; Negotiation playbook; communication tips by style.
-- **EmailJS** sends PDF as base64 attachment; CC to Dawie by combining recipients in `to_email`.
+# Find Your Lead Gen WINWIN — DISC Webapp
 
-## Netlify environment
-- `VITE_EMAILJS_SERVICE_ID`
-- `VITE_EMAILJS_TEMPLATE_ID`
-- `VITE_EMAILJS_PUBLIC_KEY`
+## Deploy (Netlify)
+1) Push this folder to GitHub and connect in Netlify.
+2) Build command: `npm run build` • Publish dir: `dist` • Node 18.
+3) Add env vars in Site settings → Build & deploy → Environment:
+   - `VITE_EMAILJS_SERVICE_ID`
+   - `VITE_EMAILJS_TEMPLATE_ID`
+   - `VITE_EMAILJS_PUBLIC_KEY`
 
-**EmailJS template**: set **To** to `{{to_email}}` (the app passes "`user@... , Dawie.dutoit@kwsa.co.za`").
+### EmailJS
+- In your template, set **To:** `{{to_email}}` and **CC:** `{{cc}}`.
+- The app sends `to_email = participant email` and `cc = Dawie.dutoit@kwsa.co.za`.
+- If attachments aren’t supported on your plan, use **Download PDF**.
+
+### Logo
+Place your KW Explore PNG at `public/kw-explore-logo.png` (we copy one if available).
