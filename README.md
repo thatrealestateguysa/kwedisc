@@ -1,14 +1,11 @@
-# Find Your Lead Gen WINWIN (Clean UI)
-- Inline components (no ./components imports), Vite + React 18.
-- 20 Most/Least questions → Natural/Adaptive → PDF + EmailJS attachment (base64).
-- CC to Dawie by combining recipients in `to_email` (comma-separated).
+# Find Your Lead Gen WINWIN — Clean Multi‑Page Report
+- 20 Most/Least questions → Natural & Adaptive → **6–10 page PDF** (KW red headings, black body).
+- Side‑by‑side bar chart; Lead Gen plan; Negotiation playbook; communication tips by style.
+- **EmailJS** sends PDF as base64 attachment; CC to Dawie by combining recipients in `to_email`.
 
-## Netlify variables
+## Netlify environment
 - `VITE_EMAILJS_SERVICE_ID`
 - `VITE_EMAILJS_TEMPLATE_ID`
 - `VITE_EMAILJS_PUBLIC_KEY`
 
-**EmailJS template**
-Set the **To** field to `{{to_email}}`. Ensure attachments are enabled (SDK will send base64 provided in `attachments`).
-
-Node 18 pinned via `.nvmrc` and `netlify.toml`.
+**EmailJS template**: set **To** to `{{to_email}}` (the app passes "`user@... , Dawie.dutoit@kwsa.co.za`").
