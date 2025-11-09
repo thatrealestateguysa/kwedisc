@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useState } from "react";
 import { Download, Mail, Loader2 } from "lucide-react";
 
@@ -52,7 +53,6 @@ const TRAIT_INFO: Record<Trait,{label:string;color:string}> = {
 };
 const STYLE_TITLES: Record<Trait,string> = { D:"Driver", I:"Connector", S:"Stabilizer", C:"Analyst" };
 const opposite: Record<Trait,Trait> = { D:'S', I:'C', S:'D', C:'I' };
-
 const percent = (n:number)=>Math.round((n/QUESTIONS.length)*100);
 const orderByScore = (obj:Record<Trait,number>) => (Object.keys(obj) as Trait[]).sort((a,b)=>obj[b]-obj[a]);
 
@@ -98,14 +98,16 @@ export default function App(){
     const adaptive:Record<Trait,number>={D:0,I:0,S:0,C:0};
     answers.forEach(a=>{
       if(a.most) natural[a.most]+=1;
-      if(a.least) adaptive[opposite[a.least]]+=1;
+      if(a.least) adaptive[opposite[a.least as Trait]]+=1;
     });
     return {natural,adaptive};
   },[answers]);
 
-  const order = (obj:Record<Trait,number>) => (Object.keys(obj) as Trait[]).sort((a,b)=>obj[b]-obj[a]);
-  const primaryOrder=order(scores.natural); const primary=primaryOrder[0]; const secondary=primaryOrder[1];
-  const plan=buildLeadGenPlan(primary,secondary); const neg=buildNegotiationPlaybook(primary,secondary);
+  const primaryOrder=orderByScore(scores.natural); 
+  const primary=primaryOrder[0]; 
+  const secondary=primaryOrder[1];
+  const plan=buildLeadGenPlan(primary,secondary); 
+  const neg=buildNegotiationPlaybook(primary,secondary); 
   const styleLabel = secondary ? `${STYLE_TITLES[primary]}–${STYLE_TITLES[secondary]}` : STYLE_TITLES[primary];
   const progress=(answeredCount/QUESTIONS.length)*100;
 
@@ -117,11 +119,19 @@ export default function App(){
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p','mm','a4');
-    const pageWidth = 210, pageHeight = 297; const imgWidth = pageWidth; const imgHeight = canvas.height * imgWidth / canvas.width;
-    let heightLeft = imgHeight; let position = 0;
+    const pageWidth = 210, pageHeight = 297; 
+    const imgWidth = pageWidth; 
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight; 
+    let position = 0;
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-    while (heightLeft > 0) { position = heightLeft - imgHeight; pdf.addPage(); pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight; }
+    while (heightLeft > 0) { 
+      position = heightLeft - imgHeight; 
+      pdf.addPage(); 
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); 
+      heightLeft -= pageHeight; 
+    }
     const name = `${APP_NAME}_${info.firstName}_${info.lastName}.pdf`;
     const blob = pdf.output('blob');
     const file = new File([blob], name, { type: 'application/pdf' });
@@ -138,7 +148,7 @@ export default function App(){
     if(!info.firstName||!info.lastName||!info.email){setErrors('Please complete your details before emailing.');return;}
     if(answers.some(a=>!a.most||!a.least)){setErrors('Please answer Most & Least for all 20 questions.');return;}
     if(!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID){
-      setErrors('Email is not configured. Add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID and VITE_EMAILJS_PUBLIC_KEY in Netlify → Site settings → Environment.');
+      setErrors('Email is not configured. Add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID and VITE_EMAILJS_PUBLIC_KEY in Netlify → Environment.');
       return;
     }
     setSending(true);
@@ -148,7 +158,8 @@ export default function App(){
       const { file } = await buildPdfAndDataUrl();
 
       const dt = new DataTransfer(); dt.items.add(file);
-      if(fileRef.current) fileRef.current.files = dt.files; else throw new Error('Attachment input missing');
+      if(!fileRef.current) throw new Error('Attachment input missing');
+      fileRef.current.files = dt.files;
 
       const f = formRef.current!;
       (f.elements.namedItem('to_email') as HTMLInputElement).value = info.email;
@@ -165,8 +176,8 @@ export default function App(){
       setErrors(null);
     }catch(e){
       console.error(e);
-      setErrors('Email failed. Confirm keys, template fields (to_email, cc, from_name, reply_to, phone, subject, message) and an attachment input named "report_pdf".');
-      alert('Email failed. See console and ensure EmailJS template has the required fields.');
+      setErrors('Email failed. Confirm keys, template fields (to_email, cc, from_name, reply_to, phone, subject, message) and an attachment named "report_pdf".');
+      alert('Email failed. Check console and EmailJS template fields.');
     }finally{ setSending(false); }
   };
 
@@ -216,7 +227,7 @@ export default function App(){
                 <div className="rounded-lg border border-neutral-800 p-3">
                   <div className="text-sm text-neutral-100 mb-3 font-medium">Most likely</div>
                   <div className="grid grid-cols-1 gap-3">
-                    {Object.entries(QUESTIONS[currentIdx].options).sort(()=>Math.random()-0.5).map(([code, text]) => {
+                    {shuffledOptions[currentIdx].map(([code, text]) => {
                       const selected = answers[currentIdx].most === code;
                       return (
                         <button key={`most-${code}`} onClick={()=>{ const next=[...answers]; if(next[currentIdx].least===code) return; next[currentIdx]={...next[currentIdx], most: code as Trait}; setAnswers(next); }}
@@ -228,7 +239,7 @@ export default function App(){
                 <div className="rounded-lg border border-neutral-800 p-3">
                   <div className="text-sm text-neutral-100 mb-3 font-medium">Least likely</div>
                   <div className="grid grid-cols-1 gap-3">
-                    {Object.entries(QUESTIONS[currentIdx].options).sort(()=>Math.random()-0.5).map(([code, text]) => {
+                    {shuffledOptions[currentIdx].map(([code, text]) => {
                       const selected = answers[currentIdx].least === code;
                       return (
                         <button key={`least-${code}`} onClick={()=>{ const next=[...answers]; if(next[currentIdx].most===code) return; next[currentIdx]={...next[currentIdx], least: code as Trait}; setAnswers(next); }}
@@ -249,7 +260,7 @@ export default function App(){
 
             {errors && <div className="text-red-500 text-sm">{errors}</div>}
             <div className="flex gap-2">
-              <button className="btn btn-secondary" onClick={downloadPDF}><span className="icon"><Download className="h-4 w-4"/></span>Download PDF</button>
+              <button className="btn btn-secondary" onClick={downloadPDF}><Download className="h-4 w-4"/>Download PDF</button>
               <button className="btn btn-primary" onClick={emailPDF} style={{backgroundColor:KW_RED}}>{sending?<Loader2 className="h-4 w-4 animate-spin"/>:<Mail className="h-4 w-4"/>} Email Report</button>
             </div>
           </CardContent>
@@ -298,7 +309,7 @@ export default function App(){
                 {(['D','I','S','C'] as Trait[]).map(k=>(<div key={k} style={{fontSize:'12px'}}>{TRAIT_INFO[k].label}: {scores.adaptive[k]} ({percent(scores.adaptive[k])}%)</div>))}
               </div>
             </div>
-            <h3 style={{fontWeight:700, fontSize:'14px', marginTop:'10px'}}>Side-by-Side Bars</h3>
+            <h3 style={{fontWeight:700, fontSize:'14px', marginTop:'10px'}}>Side‑by‑Side Bars</h3>
             <svg width="738" height="240">
               <g><text x="20" y="20" fontSize="12" fill="#111">0–100%</text></g>
               {(['D','I','S','C'] as Trait[]).map((k, i) => {
@@ -323,13 +334,13 @@ export default function App(){
               <div>
                 <h3 style={{fontWeight:700}}>Your Superpowers</h3>
                 <ul>
-                  {({D:['Decisive momentum','Bias for action','Comfort with challenge'], I:['Builds rapport fast','Storytelling & optimism','Energizes groups'], S:['Calm reliability','Patient follow-through','Trust-building presence'], C:['Accuracy & logic','Preparation & process','Data-driven framing']} as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
+                  {({D:['Decisive momentum','Bias for action','Comfort with challenge'], I:['Builds rapport fast','Storytelling & optimism','Energizes groups'], S:['Calm reliability','Patient follow‑through','Trust‑building presence'], C:['Accuracy & logic','Preparation & process','Data‑driven framing']} as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
                 </ul>
               </div>
               <div>
-                <h3 style={{fontWeight:700}}>Watch-outs</h3>
+                <h3 style={{fontWeight:700}}>Watch‑outs</h3>
                 <ul>
-                  {({D:['May rush details','Can sound blunt','Impatience with slow pace'], I:['May gloss over details','Can over-promise','Dislikes conflict'], S:['May avoid hard pushes','Slow to change','Can say yes too often'], C:['May over-analyze','Can sound critical','Slower to decide'] } as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
+                  {({D:['May rush details','Can sound blunt','Impatience with slow pace'], I:['May gloss over details','Can over‑promise','Dislikes conflict'], S:['May avoid hard pushes','Slow to change','Can say yes too often'], C:['May over‑analyze','Can sound critical','Slower to decide'] } as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
                 </ul>
               </div>
             </div>
@@ -345,7 +356,7 @@ export default function App(){
               <div>
                 <h3 style={{fontWeight:700}}>Pressure rises when…</h3>
                 <ul>
-                  {({D:['Delays & red tape','Micromanagement','Excessive debate'], I:['Cold interactions','Isolation','Rigid rules'], S:['Sudden conflict','Rushed changes','Ambiguity'], C:['Last-minute changes','Sloppy data','Emotional pressure'] } as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
+                  {({D:['Delays & red tape','Micromanagement','Excessive debate'], I:['Cold interactions','Isolation','Rigid rules'], S:['Sudden conflict','Rushed changes','Ambiguity'], C:['Last‑minute changes','Sloppy data','Emotional pressure'] } as Record<Trait,string[]>)[primary].map((x,i)=>(<li key={i}>{x}</li>))}
                 </ul>
               </div>
             </div>
@@ -354,19 +365,19 @@ export default function App(){
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
                 <h3 style={{fontWeight:700}}>With D</h3>
-                <ul><li>Be brief, outcome-first. Offer choices + deadlines.</li><li>Lead gen: clear CTA (valuation / consult) and time-boxed options.</li><li>Negotiation: anchor early, trade value for value.</li></ul>
+                <ul><li>Be brief, outcome‑first. Offer choices + deadlines.</li><li>Lead gen: clear CTA (valuation / consult) and time‑boxed options.</li><li>Negotiation: anchor early, trade value for value.</li></ul>
               </div>
               <div>
                 <h3 style={{fontWeight:700}}>With I</h3>
-                <ul><li>Warm tone. Story + social proof. Celebrate milestones.</li><li>Lead gen: invites to community/open-house experiences.</li><li>Negotiation: trial closes, summarize shared wins.</li></ul>
+                <ul><li>Warm tone. Story + social proof. Celebrate milestones.</li><li>Lead gen: invites to community/open‑house experiences.</li><li>Negotiation: trial closes, summarize shared wins.</li></ul>
               </div>
               <div>
                 <h3 style={{fontWeight:700}}>With S</h3>
-                <ul><li>Lower pressure. Clarify steps. Remove risk.</li><li>Lead gen: gentle follow-ups, resources, simple checklists.</li><li>Negotiation: label emotions; create safe, small agreements.</li></ul>
+                <ul><li>Lower pressure. Clarify steps. Remove risk.</li><li>Lead gen: gentle follow‑ups, resources, simple checklists.</li><li>Negotiation: label emotions; create safe, small agreements.</li></ul>
               </div>
               <div>
                 <h3 style={{fontWeight:700}}>With C</h3>
-                <ul><li>Evidence + process. Share sources and comparisons.</li><li>Lead gen: one-pagers, CMAs, market logic videos.</li><li>Negotiation: calibrated questions; document everything.</li></ul>
+                <ul><li>Evidence + process. Share sources and comparisons.</li><li>Lead gen: one‑pagers, CMAs, market logic videos.</li><li>Negotiation: calibrated questions; document everything.</li></ul>
               </div>
             </div>
 
@@ -388,7 +399,7 @@ export default function App(){
                 <ul>{neg.tactics.map((x,i)=>(<li key={i}>{x}</li>))}</ul>
               </div>
               <div>
-                <h3 style={{fontWeight:700}}>Watch-outs</h3>
+                <h3 style={{fontWeight:700}}>Watch‑outs</h3>
                 <ul>{neg.watchouts.map((x,i)=>(<li key={i}>{x}</li>))}</ul>
                 <h3 style={{fontWeight:700, marginTop:'6px'}}>Useful Phrases</h3>
                 <ul>{neg.phrases.map((x,i)=>(<li key={i}>{x}</li>))}</ul>
@@ -442,7 +453,7 @@ export default function App(){
 
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>11) MREA Lead Gen Models (Tailored)</h2>
             <div style={{fontSize:'12px'}}>
-              <p><b>8x8:</b> Eight touches over eight weeks for new METs in your database. {STYLE_TITLES[(['D','I','S','C'] as Trait[])[0]] && ''}</p>
+              <p><b>8x8:</b> Eight touches over eight weeks for new METs in your database. Fit the touches to your style (D: decisive CTAs; I: invites + energy; S: consistent reassurance; C: data + one-pagers).</p>
               <p><b>36 Touch (ongoing):</b> Systematic touches across email, social, text, events. Blend with your style to improve consistency and conversion.</p>
               <p><b>12 Direct (Farming):</b> One high-value touch per month to a geographic or interest farm (market-at-a-glance, CMA one-pagers, event invites).</p>
             </div>
@@ -473,7 +484,7 @@ export default function App(){
 
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>14) Lead Gen to a WIN (Playbook)</h2>
             <ul style={{fontSize:'12px'}}>
-              <li><b>Daily:</b> Power hour + 5 quality touches + 1 artifact (post, reel, or one-pager).</li>
+              <li><b>Daily:</b> Power hour + 5 quality touches + 1 artifact (post, reel, or one‑pager).</li>
               <li><b>Weekly:</b> One event engine (open house/community) + pipeline triage + CMA outreach.</li>
               <li><b>Monthly:</b> Market note + client care touch + case study.</li>
             </ul>
@@ -482,11 +493,11 @@ export default function App(){
             <ol style={{fontSize:'12px', paddingLeft:'20px'}}>
               <li>Frame in one sentence (goal + constraint).</li>
               <li>Label and mirror; then ask a calibrated question.</li>
-              <li>Trade value-for-value; bracket with data.</li>
-              <li>Summarize agreements in writing; book the next check-in.</li>
+              <li>Trade value‑for‑value; bracket with data.</li>
+              <li>Summarize agreements in writing; book the next check‑in.</li>
             </ol>
 
-            <div style={{marginTop:'18px', fontSize:'11px', color:'#444'}}>This high-level DISC result is directional. Use it to adapt your communication and lead gen systems. © KW Explore</div>
+            <div style={{marginTop:'18px', fontSize:'11px', color:'#444'}}>This high‑level DISC result is directional. Use it to adapt your communication and lead gen systems. © KW Explore</div>
           </div>
         </div>
       </main>
