@@ -13,8 +13,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "strict": true
+    "noEmit": false,
+    "esModuleInterop": true,
+    "strict": true,
+    "baseUrl": "."
   },
   "include": [
     "src"
