@@ -1,25 +1,16 @@
 {
-  "name": "kw-disc-app",
+  "name": "kwe-disc-webapp",
   "version": "1.0.0",
-  "private": true,
-  "type": "module",
+  "description": "KWE DISC Profile web app \u2013 collects details and emails a report PDF",
+  "main": "server.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "node server.js"
   },
+  "author": "KWE DISC",
+  "license": "MIT",
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.451.0",
-    "emailjs-com": "^3.2.0",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.1"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5",
-    "vite": "^5.0.0",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.13"
   }
 }
