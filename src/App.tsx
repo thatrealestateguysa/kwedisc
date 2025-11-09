@@ -1,7 +1,8 @@
-
+\
 import React, { useMemo, useRef, useState } from "react";
 import { Download, Mail, Loader2 } from "lucide-react";
 
+// Minimal inline UI (keeps Netlify build simple)
 const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary'|'secondary' }> = ({variant='primary', className='', ...props}) => (
   <button {...props} className={`btn ${variant==='primary'?'btn-primary':'btn-secondary'} ${className}`}/>
 );
@@ -10,11 +11,14 @@ const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({className=
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>((props, ref)=> (<input ref={ref} {...props} className={`input ${props.className||''}`} />));
 Input.displayName='Input';
 
+// THEME / BRAND
 const KW_RED = "#b40101";
 const LOGO_SRC = "/kw-explore-logo.png";
 const APP_NAME = "Find Your Lead Gen WINWIN";
 
-const SENDER_EMAIL = "Dawie.dutoit@kwsa.co.za";
+// EmailJS (configure in Netlify env)
+const SENDER_EMAIL = "Dawie.dutoit@kwsa.co.za"; // reply-to + default CC
+// Using import.meta.env directly may fail in some hosted editors, cast as any
 const EMAILJS_SERVICE_ID = (import.meta as any).env?.VITE_EMAILJS_SERVICE_ID || "";
 const EMAILJS_TEMPLATE_ID = (import.meta as any).env?.VITE_EMAILJS_TEMPLATE_ID || "";
 const EMAILJS_PUBLIC_KEY  = (import.meta as any).env?.VITE_EMAILJS_PUBLIC_KEY  || "";
@@ -22,7 +26,9 @@ const CC_EMAIL = SENDER_EMAIL;
 
 type Trait = 'D'|'I'|'S'|'C';
 
+// 20 MOST/LEAST questions (10 work + 10 personal)
 const QUESTIONS: { q: string; options: Record<Trait,string>; domain: 'work' | 'personal' }[] = [
+  // WORK (10)
   { domain:'work', q: "In client meetings, you typically...", options: { D:"Set the agenda and drive to decisions", I:"Build rapport and keep energy high", S:"Keep it comfortable and steady", C:"Walk through a structured plan with data" } },
   { domain:'work', q: "When prospecting time starts, you...", options: { D:"Dial immediately—no warm-up", I:"Start with quick social touches", S:"Review your list and ease into calls", C:"Check CRM segments and scripts first" } },
   { domain:'work', q: "Your follow-up habit tends to...", options: { D:"Be short and direct with a clear CTA", I:"Be friendly and story-driven", S:"Be consistent and caring", C:"Be detailed with links and facts" } },
@@ -33,6 +39,7 @@ const QUESTIONS: { q: string; options: Record<Trait,string>; domain: 'work' | 'p
   { domain:'work', q: "Your CRM approach is...", options: { D:"Action lists and next steps", I:"Notes about people and moments", S:"Reminders and relationship cues", C:"Tags, fields, and reporting" } },
   { domain:'work', q: "Under tight deadlines you...", options: { D:"Sprint and decide", I:"Keep spirits up and move", S:"Stay calm and sequence tasks", C:"Re-plan precisely to finish early" } },
   { domain:'work', q: "When pricing a property you...", options: { D:"Choose a bold but realistic number", I:"Consider appeal and narrative", S:"Aim for safe, steady interest", C:"Model comps, absorption, and scenarios" } },
+  // PERSONAL (10)
   { domain:'personal', q: "On a free weekend, you're more likely to...", options: { D:"Tackle a big task or challenge", I:"See friends and try something fun", S:"Relax at home and recharge", C:"Organize, learn, or optimize something" } },
   { domain:'personal', q: "At a party, you...", options: { D:"Drive the plan (where/when/what)", I:"Float around and connect with many", S:"Stay with a few close people", C:"Observe first, join where it fits" } },
   { domain:'personal', q: "When a decision is needed, you rely on...", options: { D:"Speed and gut confidence", I:"How it will feel for people", S:"Harmony and stability", C:"Data and clear logic" } },
@@ -52,16 +59,17 @@ const TRAIT_INFO: Record<Trait,{label:string;color:string}> = {
   C: { label: "Conscientiousness",   color: "#0f766e" },
 };
 const STYLE_TITLES: Record<Trait,string> = { D:"Driver", I:"Connector", S:"Stabilizer", C:"Analyst" };
+
 const opposite: Record<Trait,Trait> = { D:'S', I:'C', S:'D', C:'I' };
 const percent = (n:number)=>Math.round((n/QUESTIONS.length)*100);
 const orderByScore = (obj:Record<Trait,number>) => (Object.keys(obj) as Trait[]).sort((a,b)=>obj[b]-obj[a]);
 
 function buildLeadGenPlan(primary:Trait, secondary?:Trait){
   const base: Record<Trait,{title:string;daily:string[];weekly:string[];monthly:string[];practical:string[]}> = {
-    D:{title:'Lead Gen Action Plan – Driver',daily:['60-minute power hour: focused dials/texts to hot & new leads','Set 1 clear CTA per touch (book consult, valuation, tour)','Tighten time blocks: prospecting → appointments → negotiation'],weekly:['FSBO/Expired outreach sprint (2 sessions)','Host/partner an outcome-driven event (e.g., "Sell in 60 Days" clinic)','Review pipeline: remove blockers, set deadlines'],monthly:['Refine your listing presentation with one new bold proof (case study, stat)','Launch a direct-response ad with a measurable offer'],practical:['Use short scripts that lead (e.g., "Here’s the fastest path that protects your price—shall we schedule 20 minutes?")','Track conversion by step; kill what\\'s slow, double what\\'s working']},
-    I:{title:'Lead Gen Action Plan – Connector',daily:['5 relationship touches (voice notes/DMs) – celebrate, invite, help','Shoot 1 story/reel about a client win or neighborhood vibe','Log 1 new person to your SOI with a memory hook'],weekly:['Run a fun micro-event (coffee pop-up, walk-and-talk preview)','Open house as relationship engine (set 3 follow-ups on the spot)','Send a "good news" email to your list (social proof, invite)'],monthly:['Host a community meetup or client appreciation mini-event','Batch content day with 4–6 short videos'],practical:['Use curiosity openers (e.g., "Just out of curiosity…") and future-pacing','Turn every "maybe" into a calendar invite or next micro-step']},
-    S:{title:'Lead Gen Action Plan – Stabilizer',daily:['3 care calls + 2 handwritten notes','Nurture 1 past client with a simple check-in or resource','Document promises in CRM and schedule gentle follow-ups'],weekly:['Neighborhood nurture: door notes or porch drop-bys','Host a calm Q&A ("Understanding the process")','Referral touch: "Who can I take care of for you this month?"'],monthly:['Client care event (shredding day, movie night, park picnic)','Update a step-by-step buyer/seller guide, share with warm list'],practical:['Lead with empathy; recap next steps after every convo','Use gentle trial closes ("Would it help if…") to reduce friction']},
-    C:{title:'Lead Gen Action Plan – Analyst',daily:['Update market watch list; send 1 insight to 3 prospects','Tidy CRM tags/segments; trigger one relevant drip','Draft 1 data-backed post (comps, absorption, payment scenarios)'],weekly:['Record a 3-minute "market logic" video with captions','Host a micro-webinar: "What the data says about timing"','Price-preview CMAs for 3 homeowners (email a one-page visual)'],monthly:['Ship a one-pager "Market at a Glance" to your farm list','A/B test a landing page or lead magnet; iterate on conversion'],practical:['Use calibrated questions ("What would make the numbers work for you?")','Visualize: charts, one-pagers, decision matrices']}
+    D:{title:'Lead Gen Action Plan – Driver',daily:['60‑minute power hour: focused dials/texts to hot & new leads','Set 1 clear CTA per touch (book consult, valuation, tour)','Tighten time blocks: prospecting → appointments → negotiation'],weekly:['FSBO/Expired outreach sprint (2 sessions)','Host/partner an outcome‑driven event (e.g., \"Sell in 60 Days\" clinic)','Review pipeline: remove blockers, set deadlines'],monthly:['Refine your listing presentation with one new bold proof (case study, stat)','Launch a direct‑response ad with a measurable offer'],practical:['Use short scripts that lead (e.g., \"Here’s the fastest path that protects your price—shall we schedule 20 minutes?\")','Track conversion by step; kill what\\'s slow, double what\\'s working']},
+    I:{title:'Lead Gen Action Plan – Connector',daily:['5 relationship touches (voice notes/DMs) – celebrate, invite, help','Shoot 1 story/reel about a client win or neighborhood vibe','Log 1 new person to your SOI with a memory hook'],weekly:['Run a fun micro‑event (coffee pop‑up, walk‑and‑talk preview)','Open house as relationship engine (set 3 follow‑ups on the spot)','Send a \"good news\" email to your list (social proof, invite)'],monthly:['Host a community meetup or client appreciation mini‑event','Batch content day with 4–6 short videos'],practical:['Use curiosity openers (e.g., \"Just out of curiosity…\") and future‑pacing','Turn every \"maybe\" into a calendar invite or next micro‑step']},
+    S:{title:'Lead Gen Action Plan – Stabilizer',daily:['3 care calls + 2 handwritten notes','Nurture 1 past client with a simple check‑in or resource','Document promises in CRM and schedule gentle follow‑ups'],weekly:['Neighborhood nurture: door notes or porch drop‑bys','Host a calm Q&A (\"Understanding the process\")','Referral touch: \"Who can I take care of for you this month?\"'],monthly:['Client care event (shredding day, movie night, park picnic)','Update a step‑by‑step buyer/seller guide, share with warm list'],practical:['Lead with empathy; recap next steps after every convo','Use gentle trial closes (\"Would it help if…\") to reduce friction']},
+    C:{title:'Lead Gen Action Plan – Analyst',daily:['Update market watch list; send 1 insight to 3 prospects','Tidy CRM tags/segments; trigger one relevant drip','Draft 1 data‑backed post (comps, absorption, payment scenarios)'],weekly:['Record a 3‑minute \"market logic\" video with captions','Host a micro‑webinar: \"What the data says about timing\"','Price‑preview CMAs for 3 homeowners (email a one‑page visual)'],monthly:['Ship a one‑pager \"Market at a Glance\" to your farm list','A/B test a landing page or lead magnet; iterate on conversion'],practical:['Use calibrated questions (\"What would make the numbers work for you?\")','Visualize: charts, one‑pagers, decision matrices']}
   };
   const mix=(a:string[],b?:string[])=>b?Array.from(new Set([...a,...b])).slice(0,6):a;
   const p=base[primary]; const s=secondary?base[secondary]:undefined;
@@ -70,10 +78,10 @@ function buildLeadGenPlan(primary:Trait, secondary?:Trait){
 
 function buildNegotiationPlaybook(primary:Trait, secondary?:Trait){
   const base: Record<Trait,{approach:string[];tactics:string[];watchouts:string[];phrases:string[]}> = {
-    D:{approach:['Own the frame, define outcomes, set clear timelines'],tactics:['Set strong anchors','Use deadlines and BATNA clarity','Trade, don’t concede'],watchouts:['Over-pressuring slower styles','Talking past emotions'],phrases:['Here’s the fastest path that protects your outcome…','What flexibility do we have on X if we deliver Y today?']},
-    I:{approach:['Build high trust and momentum, package win-wins'],tactics:['Trial closes','Summarize gains often','Name shared goals'],watchouts:['Over-promising','Missing details in the excitement'],phrases:['What would make this feel like a win for everyone?','If we solved X for them, could you be open to Y?']},
-    S:{approach:['Collaborative pace, reduce stress, protect relationships'],tactics:['Label emotions','Offer safe next steps','Create small agreements'],watchouts:['Avoiding necessary conflict','Too much delay'],phrases:['It sounds like timing is stressful—what would feel manageable?','Would it help if we handled X so you can comfortably do Y?']},
-    C:{approach:['Evidence-based, logical progress, document everything'],tactics:['Data counters','Bracketing','Calibrated questions'],watchouts:['Over-analyzing','Under-acknowledging feelings'],phrases:['Help me understand how you calculated that number.','According to the comps and absorption, a move to X achieves Y—how does that land?']}
+    D:{approach:['Own the frame, define outcomes, set clear timelines'],tactics:['Set strong anchors','Use deadlines and BATNA clarity','Trade, don’t concede'],watchouts:['Over‑pressuring slower styles','Talking past emotions'],phrases:['Here’s the fastest path that protects your outcome…','What flexibility do we have on X if we deliver Y today?']},
+    I:{approach:['Build high trust and momentum, package win‑wins'],tactics:['Trial closes','Summarize gains often','Name shared goals'],watchouts:['Over‑promising','Missing details in the excitement'],phrases:['What would make this feel like a win for everyone?','If we solved X for them, could you be open to Y?']},
+    S:{approach:['Collaborative pace, reduce stress, protect relationships'],tactics:['Label emotions','Offer safe next steps','Create small agreements'],watchouts:['Avoiding necessary conflict','Too much delay'],phrases:['It sounds like timing is stressful—what would feel manageable?','Would it help if we handled X so you could comfortably do Y?']},
+    C:{approach:['Evidence‑based, logical progress, document everything'],tactics:['Data counters','Bracketing','Calibrated questions'],watchouts:['Over‑analyzing','Under‑acknowledging feelings'],phrases:['Help me understand how you calculated that number.','According to the comps and absorption, a move to X achieves Y—how does that land?']}
   };
   const merge=(a:string[],b?:string[])=>b?Array.from(new Set([...a,...b])).slice(0,6):a;
   const p=base[primary], s=secondary?base[secondary]:undefined;
@@ -93,45 +101,24 @@ export default function App(){
   const shuffledOptions=useMemo(()=>QUESTIONS.map(q=>(Object.entries(q.options) as [Trait,string][]).sort(()=>Math.random()-0.5)),[]);
   const answeredCount=useMemo(()=>answers.filter(a=>a.most&&a.least).length,[answers]);
 
-  const scores=useMemo(()=>{
-    const natural:Record<Trait,number>={D:0,I:0,S:0,C:0};
-    const adaptive:Record<Trait,number>={D:0,I:0,S:0,C:0};
-    answers.forEach(a=>{
-      if(a.most) natural[a.most]+=1;
-      if(a.least) adaptive[opposite[a.least as Trait]]+=1;
-    });
-    return {natural,adaptive};
-  },[answers]);
+  const scores=useMemo(()=>{ const natural:Record<Trait,number>={D:0,I:0,S:0,C:0}; const adaptive:Record<Trait,number>={D:0,I:0,S:0,C:0}; answers.forEach(a=>{ if(a.most) natural[a.most]+=1; if(a.least) adaptive[opposite[a.least as Trait]]+=1; }); return {natural,adaptive}; },[answers]);
 
-  const primaryOrder=orderByScore(scores.natural); 
-  const primary=primaryOrder[0]; 
-  const secondary=primaryOrder[1];
-  const plan=buildLeadGenPlan(primary,secondary); 
-  const neg=buildNegotiationPlaybook(primary,secondary); 
-  const styleLabel = secondary ? `${STYLE_TITLES[primary]}–${STYLE_TITLES[secondary]}` : STYLE_TITLES[primary];
+  const primaryOrder=orderByScore(scores.natural); const primary=primaryOrder[0]; const secondary=primaryOrder[1];
+  const plan=buildLeadGenPlan(primary,secondary); const neg=buildNegotiationPlaybook(primary,secondary); const styleLabel = secondary ? `${STYLE_TITLES[primary]}–${STYLE_TITLES[secondary]}` : STYLE_TITLES[primary];
   const progress=(answeredCount/QUESTIONS.length)*100;
 
   const buildPdfAndDataUrl = async ()=>{
-    if(!reportRef.current) throw new Error("Report content not available for PDF generation.");
     const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
     const el = reportRef.current!;
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p','mm','a4');
-    const pageWidth = 210, pageHeight = 297; 
-    const imgWidth = pageWidth; 
-    const imgHeight = canvas.height * imgWidth / canvas.width;
-    let heightLeft = imgHeight; 
-    let position = 0;
+    const pageWidth = 210, pageHeight = 297; const imgWidth = pageWidth; const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight; let position = 0;
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-    while (heightLeft > 0) { 
-      position = heightLeft - imgHeight; 
-      pdf.addPage(); 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); 
-      heightLeft -= pageHeight; 
-    }
+    while (heightLeft > 0) { position = heightLeft - imgHeight; pdf.addPage(); pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight; }
     const name = `${APP_NAME}_${info.firstName}_${info.lastName}.pdf`;
     const blob = pdf.output('blob');
     const file = new File([blob], name, { type: 'application/pdf' });
@@ -139,16 +126,13 @@ export default function App(){
     return { pdf, file, dataUrl, name };
   };
 
-  const downloadPDF = async ()=>{ 
-    try { const { pdf } = await buildPdfAndDataUrl(); pdf.save(`${APP_NAME}_${info.firstName}_${info.lastName}.pdf`); }
-    catch(e){ console.error(e); setErrors('Could not generate PDF. Please complete your details and all 20 questions.'); }
-  };
+  const downloadPDF = async ()=>{ const { pdf } = await buildPdfAndDataUrl(); pdf.save(`${APP_NAME}_${info.firstName}_${info.lastName}.pdf`); };
 
   const emailPDF = async ()=>{
     if(!info.firstName||!info.lastName||!info.email){setErrors('Please complete your details before emailing.');return;}
     if(answers.some(a=>!a.most||!a.least)){setErrors('Please answer Most & Least for all 20 questions.');return;}
     if(!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID){
-      setErrors('Email is not configured. Add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID and VITE_EMAILJS_PUBLIC_KEY in Netlify → Environment.');
+      setErrors('Email is not configured. Add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID and VITE_EMAILJS_PUBLIC_KEY in Netlify → Site settings → Environment.');
       return;
     }
     setSending(true);
@@ -156,10 +140,7 @@ export default function App(){
       const emailjs = await import('emailjs-com');
       await emailjs.init(EMAILJS_PUBLIC_KEY);
       const { file } = await buildPdfAndDataUrl();
-
-      const dt = new DataTransfer(); dt.items.add(file);
-      if(!fileRef.current) throw new Error('Attachment input missing');
-      fileRef.current.files = dt.files;
+      const dt = new DataTransfer(); dt.items.add(file); if(fileRef.current) fileRef.current.files = dt.files; else throw new Error('Attachment input missing');
 
       const f = formRef.current!;
       (f.elements.namedItem('to_email') as HTMLInputElement).value = info.email;
@@ -176,13 +157,14 @@ export default function App(){
       setErrors(null);
     }catch(e){
       console.error(e);
-      setErrors('Email failed. Confirm keys, template fields (to_email, cc, from_name, reply_to, phone, subject, message) and an attachment named "report_pdf".');
-      alert('Email failed. Check console and EmailJS template fields.');
+      setErrors('Email failed. Confirm keys, template fields (to_email, cc, from_name, reply_to, phone, subject, message) and an attachment input named \"report_pdf\".');
+      alert('Email failed. See console and ensure EmailJS template has the required fields.');
     }finally{ setSending(false); }
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0d] text-neutral-100">
+    <div className="min-h-screen" style={{ background:'#0b0b0d', color:'#e5e7eb' }}>
+      {/* Hidden EmailJS form */}
       <form ref={formRef} style={{display:'none'}}>
         <input type="email" name="to_email" />
         <input type="text" name="to_name" />
@@ -195,12 +177,14 @@ export default function App(){
         <input ref={fileRef} type="file" name="report_pdf" />
       </form>
 
-      <header className="border-b border-neutral-800 bg-neutral-900/90 sticky top-0 z-10 p-4 flex items-center gap-3">
-        <img src={LOGO_SRC} alt="KW Explore" style={{height:'20px'}} />
+      {/* HEADER */}
+      <header style={{borderBottom:'1px solid #2a2a2e', background:'#121214e6'}} className="sticky top-0 z-10 p-4 flex items-center gap-3">
+        <img src={LOGO_SRC} alt="KW Explore" style={{height:'24px'}} />
         <h1 className="font-bold text-xl" style={{ color: KW_RED }}>{APP_NAME}</h1>
       </header>
 
       <main className="max-w-3xl mx-auto p-4 space-y-4">
+        {/* DETAILS */}
         <Card className="bg-neutral-900 border-neutral-800">
           <CardContent className="space-y-3">
             <h2 className="text-lg font-semibold" style={{ color: KW_RED }}>Your Details</h2>
@@ -213,21 +197,22 @@ export default function App(){
           </CardContent>
         </Card>
 
+        {/* QUESTIONNAIRE */}
         <Card className="bg-neutral-900 border-neutral-800">
           <CardContent className="space-y-4">
             <h2 className="text-lg font-semibold" style={{ color: KW_RED }}>Get To Know Yourself</h2>
-            <div className="w-full h-2 rounded-full bg-neutral-800 overflow-hidden">
+            <div className="w-full h-2 rounded-full" style={{ background:'#2a2a2e', overflow:'hidden' }}>
               <div className="h-full" style={{ width: `${progress}%`, background: KW_RED }}></div>
             </div>
-            <div className="text-xs text-neutral-400">Answered: {answeredCount}/{QUESTIONS.length}</div>
+            <div className="text-xs" style={{ color:'#9ca3af' }}>Answered: {answeredCount}/{QUESTIONS.length}</div>
 
-            <div className="rounded-xl border border-neutral-800 p-3">
+            <div className="rounded-xl" style={{ border:'1px solid #2a2a2e', padding:'12px' }}>
               <div style={{fontSize:'22px', lineHeight:'1.35', fontWeight:700, marginBottom:'12px'}}>{currentIdx + 1}. {QUESTIONS[currentIdx].q}</div>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-neutral-800 p-3">
-                  <div className="text-sm text-neutral-100 mb-3 font-medium">Most likely</div>
+                <div className="rounded-lg" style={{ border:'1px solid #2a2a2e', padding:'12px' }}>
+                  <div className="text-sm mb-3 font-medium" style={{ color:'#fff' }}>Most likely</div>
                   <div className="grid grid-cols-1 gap-3">
-                    {shuffledOptions[currentIdx].map(([code, text]) => {
+                    { (Object.entries(QUESTIONS[currentIdx].options) as [Trait,string][]).sort(()=>Math.random()-0.5).map(([code, text]) => {
                       const selected = answers[currentIdx].most === code;
                       return (
                         <button key={`most-${code}`} onClick={()=>{ const next=[...answers]; if(next[currentIdx].least===code) return; next[currentIdx]={...next[currentIdx], most: code as Trait}; setAnswers(next); }}
@@ -236,10 +221,10 @@ export default function App(){
                     })}
                   </div>
                 </div>
-                <div className="rounded-lg border border-neutral-800 p-3">
-                  <div className="text-sm text-neutral-100 mb-3 font-medium">Least likely</div>
+                <div className="rounded-lg" style={{ border:'1px solid #2a2a2e', padding:'12px' }}>
+                  <div className="text-sm mb-3 font-medium" style={{ color:'#fff' }}>Least likely</div>
                   <div className="grid grid-cols-1 gap-3">
-                    {shuffledOptions[currentIdx].map(([code, text]) => {
+                    { (Object.entries(QUESTIONS[currentIdx].options) as [Trait,string][]).sort(()=>Math.random()-0.5).map(([code, text]) => {
                       const selected = answers[currentIdx].least === code;
                       return (
                         <button key={`least-${code}`} onClick={()=>{ const next=[...answers]; if(next[currentIdx].most===code) return; next[currentIdx]={...next[currentIdx], least: code as Trait}; setAnswers(next); }}
@@ -249,25 +234,27 @@ export default function App(){
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-3 text-xs text-neutral-400">
-                <div>Question {currentIdx+1} of {QUESTIONS.length}</div>
+              <div className="flex items-center justify-between mt-3 text-xs" style={{ color:'#9ca3af' }}>
+                <div>Question {currentIdx+1} of {QUESTIONS.length} ({QUESTIONS[currentIdx].domain})</div>
                 <div className="flex gap-2">
-                  <button className="btn btn-secondary px-4 py-3" onClick={()=>setCurrentIdx(Math.max(0, currentIdx-1))}>Previous</button>
-                  <button className="btn btn-primary px-4 py-3" style={{backgroundColor:KW_RED}} onClick={()=>setCurrentIdx(Math.min(QUESTIONS.length-1, currentIdx+1))} disabled={!answers[currentIdx].most||!answers[currentIdx].least}>{currentIdx<QUESTIONS.length-1?'Next':'Finish'}</button>
+                  <Button variant="secondary" className="px-4 py-3" onClick={()=>setCurrentIdx(Math.max(0, currentIdx-1))}>Previous</Button>
+                  <Button className="px-4 py-3" style={{backgroundColor:KW_RED}} onClick={()=>setCurrentIdx(Math.min(QUESTIONS.length-1, currentIdx+1))} disabled={!answers[currentIdx].most||!answers[currentIdx].least}>{currentIdx<QUESTIONS.length-1?'Next':'Finish'}</Button>
                 </div>
               </div>
             </div>
 
             {errors && <div className="text-red-500 text-sm">{errors}</div>}
             <div className="flex gap-2">
-              <button className="btn btn-secondary" onClick={downloadPDF}><Download className="h-4 w-4"/>Download PDF</button>
-              <button className="btn btn-primary" onClick={emailPDF} style={{backgroundColor:KW_RED}}>{sending?<Loader2 className="h-4 w-4 animate-spin"/>:<Mail className="h-4 w-4"/>} Email Report</button>
+              <Button onClick={downloadPDF} variant="secondary"><Download className="h-4 w-4"/>Download PDF</Button>
+              <Button onClick={emailPDF} className="gap-2" style={{backgroundColor:KW_RED}}>{sending?<Loader2 className="h-4 w-4 animate-spin"/>:<Mail className="h-4 w-4"/>}Email Report</Button>
             </div>
           </CardContent>
         </Card>
 
+        {/* WHITE REPORT (multi-page via jsPDF) */}
         <div ref={reportRef} style={{position:'absolute', left:'-9999px', top:'-9999px', width:'794px'}}>
           <div style={{background:'#fff', color:'#000', fontFamily:'ui-sans-serif, system-ui', padding:'28px', lineHeight:1.6}}>
+            {/* COVER PAGE */}
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
               <img src={LOGO_SRC} alt="KW Explore" style={{height:'28px'}}/>
               <div style={{color:KW_RED, fontWeight:800, fontSize:'18px'}}>KW Explore</div>
@@ -281,6 +268,7 @@ export default function App(){
               <div style={{marginTop:'10px', fontSize:'14px'}}><b>DISC Style:</b> {styleLabel}</div>
             </div>
 
+            {/* CONTENT & PAGES */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'40px 0 8px'}}>Contents</h2>
             <ol style={{fontSize:'12px', paddingLeft:'20px'}}>
               <li>Executive Summary</li>
@@ -295,18 +283,20 @@ export default function App(){
               <li>Scoreboard & Checklists</li>
             </ol>
 
+            {/* EXEC SUMMARY */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>1) Executive Summary</h2>
             <p style={{fontSize:'12px'}}>Your natural emphasis appears strongest in <b>{TRAIT_INFO[primary].label}</b>{secondary?` with a supporting ${TRAIT_INFO[secondary].label} blend`:''}. Your adaptive pattern reflects how you tend to flex under pressure or when stakes are high.</p>
 
+            {/* NATURAL vs ADAPTIVE */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>2) Natural vs Adaptive</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
               <div>
                 <h3 style={{fontWeight:700, fontSize:'14px'}}>Natural Style</h3>
-                {(['D','I','S','C'] as Trait[]).map(k=>(<div key={k} style={{fontSize:'12px'}}>{TRAIT_INFO[k].label}: {scores.natural[k]} ({percent(scores.natural[k])}%)</div>))}
+                {(Object.keys(scores.natural) as Trait[]).map(k=>(<div key={k} style={{fontSize:'12px'}}>{TRAIT_INFO[k].label}: {scores.natural[k]} ({percent(scores.natural[k])}%)</div>))}
               </div>
               <div>
                 <h3 style={{fontWeight:700, fontSize:'14px'}}>Adaptive Style</h3>
-                {(['D','I','S','C'] as Trait[]).map(k=>(<div key={k} style={{fontSize:'12px'}}>{TRAIT_INFO[k].label}: {scores.adaptive[k]} ({percent(scores.adaptive[k])}%)</div>))}
+                {(Object.keys(scores.adaptive) as Trait[]).map(k=>(<div key={k} style={{fontSize:'12px'}}>{TRAIT_INFO[k].label}: {scores.adaptive[k]} ({percent(scores.adaptive[k])}%)</div>))}
               </div>
             </div>
             <h3 style={{fontWeight:700, fontSize:'14px', marginTop:'10px'}}>Side‑by‑Side Bars</h3>
@@ -329,6 +319,7 @@ export default function App(){
               <line x1="40" y1="200" x2="730" y2="200" stroke="#111" strokeWidth="1"/>
             </svg>
 
+            {/* STRENGTHS & BLIND SPOTS */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>3) Strengths & Blind Spots</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
@@ -345,6 +336,7 @@ export default function App(){
               </div>
             </div>
 
+            {/* MOTIVATORS & STRESSORS */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>4) Motivators & Stressors</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
@@ -361,6 +353,7 @@ export default function App(){
               </div>
             </div>
 
+            {/* COMMUNICATING WITH OTHER STYLES */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>5) How to Work with Other Styles</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
@@ -381,6 +374,7 @@ export default function App(){
               </div>
             </div>
 
+            {/* LEAD GEN PLAN */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>6) Lead Generation Action Plan</h2>
             <div style={{fontSize:'12px'}}><b>Focus:</b> {plan.title}</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px', marginTop:'8px'}}>
@@ -390,6 +384,7 @@ export default function App(){
               <div><h3 style={{fontWeight:700}}>Practical Ways</h3><ul>{plan.practical.map((x,i)=>(<li key={i}>{x}</li>))}</ul></div>
             </div>
 
+            {/* NEGOTIATION PLAYBOOK */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>7) Negotiation Playbook & Fallback</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
@@ -408,14 +403,15 @@ export default function App(){
             <div style={{marginTop:'8px', fontSize:'12px'}}>
               <b>Fallback (when talks stall):</b>
               <ol style={{paddingLeft:'20px'}}>
-                <li>Frame goals and constraints in one sentence.</li>
-                <li>Label and mirror tension.</li>
-                <li>Ask one calibrated question (“What would need to be true for X?”).</li>
-                <li>Trade value-for-value (never concede).</li>
-                <li>Summarize agreements in writing; book next checkpoint.</li>
+                <li>Reset the frame with goals and constraints in one sentence.</li>
+                <li>Label the tension (“It sounds like timing is the real worry”).</li>
+                <li>Ask one calibrated question to unlock movement (“What would need to be true for X?”).</li>
+                <li>Trade (never concede): if we deliver Y today, can you move to X?</li>
+                <li>Summarize agreements in writing and schedule next checkpoint.</li>
               </ol>
             </div>
 
+            {/* SCRIPTS */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>8) Scripts & Language Patterns</h2>
             <div style={{fontSize:'12px'}}>
               <p><b>Discovery:</b> “What would make this move feel like a win for you?” · “Out of curiosity, if we solved <i>one</i> thing today, what should it be?”</p>
@@ -424,6 +420,7 @@ export default function App(){
               <p><b>Objections:</b> “It sounds like <i>[label]</i>. Would it help if I handled X so you can comfortably do Y?”</p>
             </div>
 
+            {/* 30-60-90 */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>9) 30–60–90 Implementation</h2>
             <ul style={{fontSize:'12px'}}>
               <li><b>Next 30 days:</b> Execute the daily/weekly cadence. Track in CRM. Establish your “lead gen power hour”.</li>
@@ -431,6 +428,7 @@ export default function App(){
               <li><b>61–90 days:</b> Add one new channel aligned to your style; publish one case study or market note.</li>
             </ul>
 
+            {/* SCOREBOARD */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>10) Scoreboard & Checklists</h2>
             <table style={{width:'100%', borderCollapse:'collapse', fontSize:'12px'}}>
               <thead><tr><th style={{border:'1px solid #111', padding:'6px'}}>Metric</th><th style={{border:'1px solid #111', padding:'6px'}}>Target</th><th style={{border:'1px solid #111', padding:'6px'}}>Weekly Actual</th></tr></thead>
@@ -441,23 +439,15 @@ export default function App(){
               </tbody>
             </table>
 
-            <div style={{marginTop:'12px', fontSize:'12px'}}>
-              <b>Prep checklist (before key meetings):</b>
-              <ul>
-                <li>Clarify decision maker & success metric.</li>
-                <li>One-page visuals (market snapshot, comps) ready.</li>
-                <li>Three calibrated questions to unlock movement.</li>
-                <li>Next step calendared.</li>
-              </ul>
-            </div>
-
+            {/* MREA models */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>11) MREA Lead Gen Models (Tailored)</h2>
             <div style={{fontSize:'12px'}}>
-              <p><b>8x8:</b> Eight touches over eight weeks for new METs in your database. Fit the touches to your style (D: decisive CTAs; I: invites + energy; S: consistent reassurance; C: data + one-pagers).</p>
+              <p><b>8x8:</b> Eight touches over eight weeks for new METs in your database. Tailor cadence to your style.</p>
               <p><b>36 Touch (ongoing):</b> Systematic touches across email, social, text, events. Blend with your style to improve consistency and conversion.</p>
               <p><b>12 Direct (Farming):</b> One high-value touch per month to a geographic or interest farm (market-at-a-glance, CMA one-pagers, event invites).</p>
             </div>
 
+            {/* SHIFT */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>12) SHIFT Plays for Any Market</h2>
             <ul style={{fontSize:'12px'}}>
               <li><b>Skill up:</b> Script/roleplay 15 min daily. Pressure tests improve your adaptive style under stress.</li>
@@ -466,6 +456,7 @@ export default function App(){
               <li><b>Lead gen first:</b> Time-block non-negotiable prospecting and protect it fiercely.</li>
             </ul>
 
+            {/* Exactly What to Say */}
             <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>13) Exactly What to Say – Phrase Bank by Style</h2>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', fontSize:'12px'}}>
               <div>
@@ -482,21 +473,7 @@ export default function App(){
               </div>
             </div>
 
-            <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>14) Lead Gen to a WIN (Playbook)</h2>
-            <ul style={{fontSize:'12px'}}>
-              <li><b>Daily:</b> Power hour + 5 quality touches + 1 artifact (post, reel, or one‑pager).</li>
-              <li><b>Weekly:</b> One event engine (open house/community) + pipeline triage + CMA outreach.</li>
-              <li><b>Monthly:</b> Market note + client care touch + case study.</li>
-            </ul>
-
-            <h2 style={{color:KW_RED, fontSize:'18px', fontWeight:800, margin:'28px 0 8px'}}>15) Negotiating to a WIN</h2>
-            <ol style={{fontSize:'12px', paddingLeft:'20px'}}>
-              <li>Frame in one sentence (goal + constraint).</li>
-              <li>Label and mirror; then ask a calibrated question.</li>
-              <li>Trade value‑for‑value; bracket with data.</li>
-              <li>Summarize agreements in writing; book the next check‑in.</li>
-            </ol>
-
+            {/* Close */}
             <div style={{marginTop:'18px', fontSize:'11px', color:'#444'}}>This high‑level DISC result is directional. Use it to adapt your communication and lead gen systems. © KW Explore</div>
           </div>
         </div>
